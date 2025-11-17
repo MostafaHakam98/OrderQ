@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orders', '0005_update_recommendation_model'),
+        ('orders', '0006_alter_recommendation_text'),
     ]
 
     operations = [
