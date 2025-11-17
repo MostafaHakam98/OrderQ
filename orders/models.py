@@ -220,15 +220,23 @@ class AuditLog(models.Model):
 
 
 class Recommendation(models.Model):
-    """Recommendation model for restaurant/food suggestions"""
+    """Recommendation model for website enhancements and feedback"""
+    CATEGORY_CHOICES = [
+        ('feature', 'New Feature'),
+        ('improvement', 'Improvement'),
+        ('bug', 'Bug Report'),
+        ('ui', 'UI/UX'),
+        ('other', 'Other'),
+    ]
+    
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='recommendations')
-    restaurant = models.ForeignKey(Restaurant, on_delete=models.SET_NULL, null=True, blank=True, related_name='recommendations')
-    text = models.TextField(help_text="Recommendation text")
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='other', help_text="Type of recommendation")
+    title = models.CharField(max_length=200, help_text="Brief title for the recommendation")
+    text = models.TextField(help_text="Detailed recommendation or feedback")
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
         ordering = ['-created_at']
     
     def __str__(self):
-        restaurant_name = self.restaurant.name if self.restaurant else "General"
-        return f"{self.user.username} - {restaurant_name} ({self.created_at.strftime('%Y-%m-%d')})"
+        return f"{self.user.username} - {self.title} ({self.get_category_display()}) - {self.created_at.strftime('%Y-%m-%d')}"

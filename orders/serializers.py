@@ -278,9 +278,9 @@ class AuditLogSerializer(serializers.ModelSerializer):
 
 class RecommendationSerializer(serializers.ModelSerializer):
     user_name = serializers.CharField(source='user.username', read_only=True)
-    restaurant_name = serializers.CharField(source='restaurant.name', read_only=True, allow_null=True)
+    category_display = serializers.CharField(source='get_category_display', read_only=True)
 
     class Meta:
         model = Recommendation
-        fields = ['id', 'user', 'user_name', 'restaurant', 'restaurant_name', 'text', 'created_at']
+        fields = ['id', 'user', 'user_name', 'category', 'category_display', 'title', 'text', 'created_at']
         read_only_fields = ['id', 'user', 'created_at']

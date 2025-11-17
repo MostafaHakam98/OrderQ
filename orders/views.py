@@ -714,7 +714,7 @@ class RecommendationViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        return Recommendation.objects.all().select_related('user', 'restaurant')
+        return Recommendation.objects.all().select_related('user')
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)

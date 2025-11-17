@@ -1,69 +1,95 @@
 <template>
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-900">Recommendations</h1>
-      <p class="text-gray-600 mt-2">Share your favorite restaurants and dishes</p>
+      <h1 class="text-3xl font-bold text-gray-900">Website Recommendations</h1>
+      <p class="text-gray-600 mt-2">Share your ideas for improvements, new features, or report issues</p>
     </div>
 
     <!-- Add Recommendation Form -->
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
-      <h2 class="text-xl font-semibold mb-4">Add Recommendation</h2>
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6 border border-gray-100">
+      <h2 class="text-xl font-semibold mb-4 text-gray-800">Submit a Recommendation</h2>
       <form @submit.prevent="addRecommendation" class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Restaurant (Optional)</label>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
           <select
-            v-model="newRecommendation.restaurant"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md"
+            v-model="newRecommendation.category"
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option :value="null">General Recommendation</option>
-            <option v-for="restaurant in restaurants" :key="restaurant.id" :value="restaurant.id">
-              {{ restaurant.name }}
-            </option>
+            <option value="feature">New Feature</option>
+            <option value="improvement">Improvement</option>
+            <option value="bug">Bug Report</option>
+            <option value="ui">UI/UX</option>
+            <option value="other">Other</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Your Recommendation</label>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Title</label>
+          <input
+            v-model="newRecommendation.title"
+            type="text"
+            required
+            placeholder="Brief title for your recommendation..."
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Details</label>
           <textarea
             v-model="newRecommendation.text"
             required
-            rows="4"
-            placeholder="Share your favorite dish, restaurant tip, or food recommendation..."
-            class="w-full px-3 py-2 border border-gray-300 rounded-md"
+            rows="6"
+            placeholder="Describe your recommendation, suggestion, or feedback in detail..."
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           ></textarea>
+          <p class="text-xs text-gray-500 mt-1">Be as specific as possible. Include examples or use cases if applicable.</p>
         </div>
         <button
           type="submit"
           :disabled="submitting"
-          class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+          class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
         >
-          {{ submitting ? 'Submitting...' : 'Add Recommendation' }}
+          {{ submitting ? 'Submitting...' : 'Submit Recommendation' }}
         </button>
       </form>
     </div>
 
     <!-- Recommendations List -->
     <div v-if="loading" class="text-center py-8">
-      <p class="text-lg">Loading recommendations...</p>
+      <p class="text-lg text-gray-600">Loading recommendations...</p>
     </div>
     <div v-else-if="recommendations.length === 0" class="text-center py-8 text-gray-500">
       <p class="text-lg">No recommendations yet</p>
-      <p class="text-sm mt-2">Be the first to share a recommendation!</p>
+      <p class="text-sm mt-2">Be the first to share your ideas!</p>
     </div>
     <div v-else class="space-y-4">
       <div
         v-for="rec in recommendations"
         :key="rec.id"
-        class="bg-white rounded-lg shadow p-6"
+        class="bg-white rounded-lg shadow-md p-6 border border-gray-100 hover:shadow-lg transition-shadow"
       >
-        <div class="flex justify-between items-start mb-2">
-          <div>
-            <p class="font-semibold text-lg">{{ rec.user_name }}</p>
-            <p v-if="rec.restaurant_name" class="text-sm text-blue-600">{{ rec.restaurant_name }}</p>
-            <p v-else class="text-sm text-gray-500">General Recommendation</p>
+        <div class="flex justify-between items-start mb-3">
+          <div class="flex-1">
+            <div class="flex items-center gap-3 mb-2">
+              <h3 class="font-semibold text-lg text-gray-900">{{ rec.title }}</h3>
+              <span 
+                class="px-2 py-1 text-xs font-medium rounded-full"
+                :class="{
+                  'bg-blue-100 text-blue-800': rec.category === 'feature',
+                  'bg-green-100 text-green-800': rec.category === 'improvement',
+                  'bg-red-100 text-red-800': rec.category === 'bug',
+                  'bg-purple-100 text-purple-800': rec.category === 'ui',
+                  'bg-gray-100 text-gray-800': rec.category === 'other',
+                }"
+              >
+                {{ rec.category_display }}
+              </span>
+            </div>
+            <p class="text-sm text-gray-600">by {{ rec.user_name }}</p>
           </div>
-          <p class="text-sm text-gray-500">{{ new Date(rec.created_at).toLocaleDateString() }}</p>
+          <p class="text-sm text-gray-500 whitespace-nowrap ml-4">{{ formatDate(rec.created_at) }}</p>
         </div>
-        <p class="text-gray-700 whitespace-pre-wrap">{{ rec.text }}</p>
+        <p class="text-gray-700 whitespace-pre-wrap leading-relaxed">{{ rec.text }}</p>
       </div>
     </div>
   </div>
@@ -72,18 +98,27 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '../api'
-import { useOrdersStore } from '../stores/orders'
 
-const ordersStore = useOrdersStore()
 const loading = ref(true)
 const submitting = ref(false)
 const recommendations = ref([])
-const restaurants = ref([])
 
 const newRecommendation = ref({
-  restaurant: null,
+  category: 'other',
+  title: '',
   text: '',
 })
+
+function formatDate(dateString) {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
 
 async function fetchRecommendations() {
   loading.value = true
@@ -99,35 +134,29 @@ async function fetchRecommendations() {
 }
 
 async function addRecommendation() {
-  if (!newRecommendation.value.text.trim()) {
-    alert('Please enter a recommendation')
+  if (!newRecommendation.value.title.trim() || !newRecommendation.value.text.trim()) {
+    alert('Please fill in both title and details')
     return
   }
   
   submitting.value = true
   try {
-    const data = {
+    await api.post('/recommendations/', {
+      category: newRecommendation.value.category,
+      title: newRecommendation.value.title,
       text: newRecommendation.value.text,
-    }
-    if (newRecommendation.value.restaurant) {
-      data.restaurant = newRecommendation.value.restaurant
-    }
-    
-    await api.post('/recommendations/', data)
-    newRecommendation.value = { restaurant: null, text: '' }
+    })
+    newRecommendation.value = { category: 'other', title: '', text: '' }
     await fetchRecommendations()
-    alert('Recommendation added successfully!')
+    alert('Recommendation submitted successfully! Thank you for your feedback.')
   } catch (error) {
-    alert('Failed to add recommendation: ' + (error.response?.data?.error || error.message))
+    alert('Failed to submit recommendation: ' + (error.response?.data?.error || error.message))
   } finally {
     submitting.value = false
   }
 }
 
-onMounted(async () => {
-  await ordersStore.fetchRestaurants()
-  restaurants.value = ordersStore.restaurants
-  await fetchRecommendations()
+onMounted(() => {
+  fetchRecommendations()
 })
 </script>
-
