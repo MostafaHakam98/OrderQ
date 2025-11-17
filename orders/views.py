@@ -32,9 +32,8 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        if self.request.user.role == 'manager':
-            return User.objects.all()
-        return User.objects.filter(id=self.request.user.id)
+        # All authenticated users can see all users (needed for assignment feature)
+        return User.objects.all()
     
     def get_serializer_context(self):
         context = super().get_serializer_context()

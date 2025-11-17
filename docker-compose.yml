@@ -9,8 +9,7 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # No exposed ports - only accessible internally
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -24,8 +23,7 @@ services:
     command: /app/start.sh
     volumes:
       - .:/app
-    ports:
-      - "8000:8000"
+    # No exposed ports - only accessible internally
     environment:
       - DEBUG=True
       - DB_NAME=brighteat
@@ -45,7 +43,7 @@ services:
       args:
         - VITE_API_BASE_URL=http://localhost:8000/api
     ports:
-      - "3000:80"
+      - "19991:80"
     depends_on:
       - backend
 
