@@ -164,6 +164,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 class CollectionOrderSerializer(serializers.ModelSerializer):
     restaurant_name = serializers.CharField(source='restaurant.name', read_only=True)
+    menu_name = serializers.CharField(source='menu.name', read_only=True, allow_null=True)
     collector_name = serializers.CharField(source='collector.username', read_only=True)
     collector_instapay_link = serializers.CharField(source='collector.instapay_link', read_only=True)
     collector_instapay_qr_code_url = serializers.SerializerMethodField()
@@ -177,11 +178,12 @@ class CollectionOrderSerializer(serializers.ModelSerializer):
     share_message = serializers.SerializerMethodField()
     join_url = serializers.SerializerMethodField()
     restaurant = serializers.PrimaryKeyRelatedField(queryset=Restaurant.objects.all(), required=True)
+    menu = serializers.PrimaryKeyRelatedField(queryset=Menu.objects.all(), required=False, allow_null=True)
     cutoff_time = serializers.DateTimeField(required=False, allow_null=True, input_formats=['%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M:%S', 'iso-8601'])
     
     class Meta:
         model = CollectionOrder
-        fields = ['id', 'code', 'restaurant', 'restaurant_name', 'collector', 'collector_name', 'collector_instapay_link', 'collector_instapay_qr_code_url',
+        fields = ['id', 'code', 'restaurant', 'restaurant_name', 'menu', 'menu_name', 'collector', 'collector_name', 'collector_instapay_link', 'collector_instapay_qr_code_url',
                   'status', 'cutoff_time', 'instapay_link', 'is_private', 'assigned_users', 'assigned_users_details',
                   'delivery_fee', 'tip', 'service_fee', 'fee_split_rule', 'created_at', 'locked_at', 'ordered_at', 'closed_at',
                   'items', 'participants', 'payments', 'total_items_cost', 'total_cost', 

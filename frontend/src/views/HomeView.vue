@@ -13,6 +13,7 @@
             <label class="block text-sm font-medium text-gray-700">Restaurant</label>
             <select
               v-model="newOrder.restaurant"
+              @change="onRestaurantChange"
               required
               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             >
@@ -21,6 +22,19 @@
                 {{ restaurant.name }}
               </option>
             </select>
+          </div>
+          <div v-if="availableMenus.length > 0">
+            <label class="block text-sm font-medium text-gray-700">Menu (Optional)</label>
+            <select
+              v-model="newOrder.menu"
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option :value="null">No specific menu</option>
+              <option v-for="menu in availableMenus" :key="menu.id" :value="menu.id">
+                {{ menu.name }}
+              </option>
+            </select>
+            <p class="mt-1 text-xs text-gray-500">Select a menu to pre-load menu items, or leave blank to add items manually</p>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700">Cutoff Time</label>
@@ -132,16 +146,43 @@ const authStore = useAuthStore()
 
 const newOrder = ref({
   restaurant: '',
+  menu: null,
   cutoff_time: '',
   is_private: false,
 })
 const joinCode = ref('')
 const loading = ref(false)
 const loadingOrders = ref(false)
+const availableMenus = ref([])
+const loadingMenus = ref(false)
 
 const activeOrders = computed(() => {
   return ordersStore.orders.filter(o => o.status !== 'CLOSED')
 })
+
+async function onRestaurantChange() {
+  if (!newOrder.value.restaurant) {
+    availableMenus.value = []
+    newOrder.value.menu = null
+    return
+  }
+  
+  loadingMenus.value = true
+  try {
+    const result = await ordersStore.fetchMenus(parseInt(newOrder.value.restaurant))
+    if (result.success) {
+      availableMenus.value = result.data.filter(menu => menu.is_active)
+    } else {
+      availableMenus.value = []
+    }
+    newOrder.value.menu = null
+  } catch (error) {
+    console.error('Error fetching menus:', error)
+    availableMenus.value = []
+  } finally {
+    loadingMenus.value = false
+  }
+}
 
 onMounted(async () => {
   loadingOrders.value = true
@@ -162,6 +203,11 @@ async function createOrder() {
     is_private: newOrder.value.is_private,
   }
   
+  // Include menu if selected
+  if (newOrder.value.menu) {
+    orderData.menu = parseInt(newOrder.value.menu)
+  }
+  
   // Only include cutoff_time if it's provided
   if (newOrder.value.cutoff_time) {
     orderData.cutoff_time = newOrder.value.cutoff_time
@@ -172,7 +218,8 @@ async function createOrder() {
   if (result.success) {
     router.push(`/orders/${result.data.code}`)
     // Reset form
-    newOrder.value = { restaurant: '', cutoff_time: '', is_private: false }
+    newOrder.value = { restaurant: '', menu: null, cutoff_time: '', is_private: false }
+    availableMenus.value = []
   } else {
     alert('Failed to create order: ' + (result.error?.detail || JSON.stringify(result.error)))
   }

@@ -95,6 +95,7 @@ class CollectionOrder(models.Model):
     
     code = models.CharField(max_length=10, unique=True, db_index=True)
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='orders')
+    menu = models.ForeignKey(Menu, on_delete=models.SET_NULL, null=True, blank=True, related_name='orders', help_text="Optional menu for this order")
     collector = models.ForeignKey(User, on_delete=models.CASCADE, related_name='collected_orders')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='OPEN')
     cutoff_time = models.DateTimeField(null=True, blank=True)

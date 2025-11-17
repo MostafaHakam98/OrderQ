@@ -98,6 +98,16 @@ export const useOrdersStore = defineStore('orders', () => {
     }
   }
 
+  async function fetchMenus(restaurantId) {
+    try {
+      const response = await api.get('/menus/', { params: { restaurant: restaurantId } })
+      const menus = response.data.results || response.data
+      return { success: true, data: menus }
+    } catch (error) {
+      return { success: false, error: error.response?.data }
+    }
+  }
+
   async function createRestaurant(restaurantData) {
     try {
       const response = await api.post('/restaurants/', restaurantData)
