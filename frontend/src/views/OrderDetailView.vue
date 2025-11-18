@@ -102,16 +102,27 @@
             <h2 class="text-xl font-semibold mb-4 text-gray-800">Add Items to Order</h2>
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Menu Item</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Menu Item
+                  <span v-if="currentOrder?.menu_name" class="text-xs text-gray-500 font-normal">
+                    ({{ currentOrder.menu_name }})
+                  </span>
+                </label>
                 <select
                   v-model="selectedMenuItem"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  :disabled="availableMenuItems.length === 0"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
                 >
-                  <option value="">Select menu item</option>
+                  <option value="">
+                    {{ availableMenuItems.length === 0 ? 'No menu items available' : 'Select menu item' }}
+                  </option>
                   <option v-for="item in availableMenuItems" :key="item.id" :value="item.id">
                     {{ item.name }} - {{ item.price }} EGP
                   </option>
                 </select>
+                <p v-if="availableMenuItems.length === 0" class="mt-1 text-xs text-gray-500">
+                  No menu items found for this order's menu. You can still add custom items below.
+                </p>
               </div>
               <div class="flex space-x-2">
                 <input
@@ -692,19 +703,30 @@ async function loadOrder() {
     await new Promise(resolve => setTimeout(resolve, 0))
     console.log('After microtask - Order still exists:', !!ordersStore.currentOrder)
     
-    // Fetch menus for the restaurant
+    // Fetch menu items for the order's menu
     try {
-      await ordersStore.fetchMenus(ordersStore.currentOrder.restaurant)
-      console.log('Menus loaded:', ordersStore.menus)
-      
-      // Fetch menu items from the first menu
-      if (ordersStore.menus.length > 0) {
-        await ordersStore.fetchMenuItems(ordersStore.menus[0].id)
+      // If order has a menu assigned, fetch items from that menu
+      if (ordersStore.currentOrder.menu) {
+        console.log('Order has menu:', ordersStore.currentOrder.menu)
+        await ordersStore.fetchMenuItems(ordersStore.currentOrder.menu)
         console.log('Menu items loaded:', ordersStore.menuItems)
+      } else {
+        // Fallback: fetch menus for the restaurant and use the first one
+        await ordersStore.fetchMenus(ordersStore.currentOrder.restaurant)
+        console.log('Menus loaded:', ordersStore.menus)
+        
+        if (ordersStore.menus.length > 0) {
+          await ordersStore.fetchMenuItems(ordersStore.menus[0].id)
+          console.log('Menu items loaded from first menu:', ordersStore.menuItems)
+        } else {
+          console.warn('No menus found for restaurant')
+          ordersStore.menuItems = []
+        }
       }
     } catch (menuError) {
       console.warn('Failed to load menus:', menuError)
       // Don't fail the whole page if menus fail to load
+      ordersStore.menuItems = []
     }
     
     // Payments are already included in order.payments from the API
