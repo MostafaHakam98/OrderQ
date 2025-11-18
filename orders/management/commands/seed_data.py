@@ -45,57 +45,6 @@ class Command(BaseCommand):
         else:
             self.stdout.write(f'Member user already exists: {member.username}')
         
-        # Create restaurant
-        restaurant, created = Restaurant.objects.get_or_create(
-            name='Balbaa',
-            defaults={
-                'description': 'Delicious Middle Eastern cuisine',
-                'created_by': manager,
-            }
-        )
-        if created:
-            self.stdout.write(self.style.SUCCESS(f'Created restaurant: {restaurant.name}'))
-        else:
-            self.stdout.write(f'Restaurant already exists: {restaurant.name}')
-        
-        # Create menu
-        menu, created = Menu.objects.get_or_create(
-            restaurant=restaurant,
-            name='Main Menu',
-            defaults={'is_active': True}
-        )
-        if created:
-            self.stdout.write(self.style.SUCCESS(f'Created menu: {menu.name}'))
-        else:
-            self.stdout.write(f'Menu already exists: {menu.name}')
-        
-        # Create menu items
-        menu_items_data = [
-            {'name': 'Shawarma Sandwich', 'price': 45.00, 'description': 'Chicken shawarma with tahini'},
-            {'name': 'Falafel Sandwich', 'price': 25.00, 'description': 'Crispy falafel with vegetables'},
-            {'name': 'Mixed Grill', 'price': 120.00, 'description': 'Chicken and beef kebab with rice'},
-            {'name': 'Hummus Plate', 'price': 35.00, 'description': 'Creamy hummus with pita bread'},
-            {'name': 'Fattoush Salad', 'price': 40.00, 'description': 'Fresh mixed salad with pomegranate'},
-            {'name': 'Mansaf', 'price': 95.00, 'description': 'Traditional lamb with yogurt sauce'},
-            {'name': 'Kunafa', 'price': 30.00, 'description': 'Sweet cheese pastry'},
-            {'name': 'Fresh Juice', 'price': 20.00, 'description': 'Orange or mango juice'},
-        ]
-        
-        for item_data in menu_items_data:
-            item, created = MenuItem.objects.get_or_create(
-                menu=menu,
-                name=item_data['name'],
-                defaults={
-                    'description': item_data['description'],
-                    'price': item_data['price'],
-                    'is_available': True,
-                }
-            )
-            if created:
-                self.stdout.write(self.style.SUCCESS(f'Created menu item: {item.name}'))
-            else:
-                self.stdout.write(f'Menu item already exists: {item.name}')
-        
         # Create fee presets
         fee_presets_data = [
             {'name': 'Talabat', 'delivery_fee': 30.00, 'tip': 10.00, 'service_fee': 0.00},

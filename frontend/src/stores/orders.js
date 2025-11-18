@@ -102,6 +102,7 @@ export const useOrdersStore = defineStore('orders', () => {
     try {
       const response = await api.get('/menus/', { params: { restaurant: restaurantId } })
       const menus = response.data.results || response.data
+      menus.value = menus
       return { success: true, data: menus }
     } catch (error) {
       return { success: false, error: error.response?.data }
@@ -135,16 +136,6 @@ export const useOrdersStore = defineStore('orders', () => {
     try {
       await api.delete(`/restaurants/${restaurantId}/`)
       restaurants.value = restaurants.value.filter(r => r.id !== restaurantId)
-      return { success: true }
-    } catch (error) {
-      return { success: false, error: error.response?.data }
-    }
-  }
-
-  async function fetchMenus(restaurantId) {
-    try {
-      const response = await api.get('/menus/', { params: { restaurant: restaurantId } })
-      menus.value = response.data.results || response.data
       return { success: true }
     } catch (error) {
       return { success: false, error: error.response?.data }

@@ -23,18 +23,28 @@
               </option>
             </select>
           </div>
-          <div v-if="availableMenus.length > 0">
-            <label class="block text-sm font-medium text-gray-700">Menu (Optional)</label>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">
+              Menu
+              <span v-if="availableMenus.length > 0" class="text-red-500">*</span>
+            </label>
+            <div v-if="loadingMenus" class="mt-1 text-sm text-gray-500">Loading menus...</div>
             <select
+              v-else
               v-model="newOrder.menu"
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              :required="availableMenus.length > 0"
+              :disabled="!newOrder.restaurant || availableMenus.length === 0"
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
             >
-              <option :value="null">No specific menu</option>
+              <option :value="null">
+                {{ availableMenus.length === 0 ? 'No menus available for this restaurant' : 'Select a menu' }}
+              </option>
               <option v-for="menu in availableMenus" :key="menu.id" :value="menu.id">
                 {{ menu.name }}
               </option>
             </select>
-            <p class="mt-1 text-xs text-gray-500">Select a menu to pre-load menu items, or leave blank to add items manually</p>
+            <p v-if="availableMenus.length > 0" class="mt-1 text-xs text-gray-500">Select a menu for this order</p>
+            <p v-else-if="newOrder.restaurant" class="mt-1 text-xs text-gray-500">No menus available. You can still create the order and add items manually.</p>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700">Cutoff Time</label>
@@ -194,6 +204,12 @@ onMounted(async () => {
 async function createOrder() {
   if (!newOrder.value.restaurant) {
     alert('Please select a restaurant')
+    return
+  }
+  
+  // Require menu if menus are available
+  if (availableMenus.value.length > 0 && !newOrder.value.menu) {
+    alert('Please select a menu for this restaurant')
     return
   }
   
