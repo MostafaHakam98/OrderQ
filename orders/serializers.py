@@ -244,7 +244,7 @@ class CollectionOrderSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         cutoff_str = obj.cutoff_time.strftime('%I:%M %p') if obj.cutoff_time else 'N/A'
         join_url = self.get_join_url(obj)
-        message = (f"🍽️ BrightEat: Order from {obj.restaurant.name}\n"
+        message = (f"🍽️ OrderQ: Order from {obj.restaurant.name}\n"
                   f"📋 Join code: {obj.code}\n"
                   f"⏰ Cutoff: {cutoff_str}\n"
                   f"🔗 Add your items here: {join_url}\n"

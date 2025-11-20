@@ -1,20 +1,20 @@
 <template>
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-900">Website Recommendations</h1>
-      <p class="text-gray-600 mt-2">Share your ideas for improvements, new features, or report issues</p>
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Website Recommendations</h1>
+      <p class="text-gray-600 dark:text-gray-400 mt-2">Share your ideas for improvements, new features, or report issues</p>
     </div>
 
     <!-- Add Recommendation Form -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6 border border-gray-100">
-      <h2 class="text-xl font-semibold mb-4 text-gray-800">Submit a Recommendation</h2>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6 border border-gray-100 dark:border-gray-700">
+      <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Submit a Recommendation</h2>
       <form @submit.prevent="addRecommendation" class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
           <select
             v-model="newRecommendation.category"
             required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
           >
             <option value="feature">New Feature</option>
             <option value="improvement">Improvement</option>
@@ -24,30 +24,30 @@
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Title</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Title</label>
           <input
             v-model="newRecommendation.title"
             type="text"
             required
             placeholder="Brief title for your recommendation..."
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Details</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Details</label>
           <textarea
             v-model="newRecommendation.text"
             required
             rows="6"
             placeholder="Describe your recommendation, suggestion, or feedback in detail..."
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
           ></textarea>
-          <p class="text-xs text-gray-500 mt-1">Be as specific as possible. Include examples or use cases if applicable.</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Be as specific as possible. Include examples or use cases if applicable.</p>
         </div>
         <button
           type="submit"
           :disabled="submitting"
-          class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+          class="bg-blue-600 dark:bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
         >
           {{ submitting ? 'Submitting...' : 'Submit Recommendation' }}
         </button>
@@ -56,9 +56,9 @@
 
     <!-- Recommendations List -->
     <div v-if="loading" class="text-center py-8">
-      <p class="text-lg text-gray-600">Loading recommendations...</p>
+      <p class="text-lg text-gray-600 dark:text-gray-400">Loading recommendations...</p>
     </div>
-    <div v-else-if="recommendations.length === 0" class="text-center py-8 text-gray-500">
+    <div v-else-if="recommendations.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
       <p class="text-lg">No recommendations yet</p>
       <p class="text-sm mt-2">Be the first to share your ideas!</p>
     </div>
@@ -66,30 +66,30 @@
       <div
         v-for="rec in recommendations"
         :key="rec.id"
-        class="bg-white rounded-lg shadow-md p-6 border border-gray-100 hover:shadow-lg transition-shadow"
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-shadow"
       >
         <div class="flex justify-between items-start mb-3">
           <div class="flex-1">
             <div class="flex items-center gap-3 mb-2">
-              <h3 class="font-semibold text-lg text-gray-900">{{ rec.title }}</h3>
+              <h3 class="font-semibold text-lg text-gray-900 dark:text-white">{{ rec.title }}</h3>
               <span 
                 class="px-2 py-1 text-xs font-medium rounded-full"
                 :class="{
-                  'bg-blue-100 text-blue-800': rec.category === 'feature',
-                  'bg-green-100 text-green-800': rec.category === 'improvement',
-                  'bg-red-100 text-red-800': rec.category === 'bug',
-                  'bg-purple-100 text-purple-800': rec.category === 'ui',
-                  'bg-gray-100 text-gray-800': rec.category === 'other',
+                  'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300': rec.category === 'feature',
+                  'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300': rec.category === 'improvement',
+                  'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300': rec.category === 'bug',
+                  'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300': rec.category === 'ui',
+                  'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300': rec.category === 'other',
                 }"
               >
                 {{ rec.category_display }}
               </span>
             </div>
-            <p class="text-sm text-gray-600">by {{ rec.user_name }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">by {{ rec.user_name }}</p>
           </div>
-          <p class="text-sm text-gray-500 whitespace-nowrap ml-4">{{ formatDate(rec.created_at) }}</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap ml-4">{{ formatDate(rec.created_at) }}</p>
         </div>
-        <p class="text-gray-700 whitespace-pre-wrap leading-relaxed">{{ rec.text }}</p>
+        <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{{ rec.text }}</p>
       </div>
     </div>
   </div>

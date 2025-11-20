@@ -1,13 +1,13 @@
 <template>
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <h1 class="text-3xl font-bold text-gray-900 mb-8">Monthly Reports</h1>
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-8">Monthly Reports</h1>
 
     <div v-if="authStore.isManager" class="mb-6">
-      <label class="block text-sm font-medium text-gray-700 mb-2">Select User</label>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select User</label>
       <select
         v-model="selectedUserId"
         @change="fetchReport"
-        class="px-3 py-2 border border-gray-300 rounded-md"
+        class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
       >
         <option :value="authStore.user?.id">Me</option>
         <option v-for="user in users" :key="user.id" :value="user.id">
@@ -16,23 +16,23 @@
       </select>
     </div>
 
-    <div v-if="loading" class="text-center py-8">Loading...</div>
-    <div v-else-if="report" class="bg-white rounded-lg shadow p-6">
-      <h2 class="text-xl font-semibold mb-4">
+    <div v-if="loading" class="text-center py-8 text-gray-600 dark:text-gray-400">Loading...</div>
+    <div v-else-if="report" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <h2 class="text-xl font-semibold mb-4 dark:text-white">
         Report for {{ report.user.username }} - {{ report.month }}
       </h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-blue-50 rounded-lg p-4">
-          <p class="text-sm text-gray-600">Total Spend</p>
-          <p class="text-2xl font-bold text-blue-600">{{ report.total_spend.toFixed(2) }} EGP</p>
+        <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4">
+          <p class="text-sm text-gray-600 dark:text-gray-400">Total Spend</p>
+          <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ report.total_spend.toFixed(2) }} EGP</p>
         </div>
-        <div class="bg-green-50 rounded-lg p-4">
-          <p class="text-sm text-gray-600">Times as Collector</p>
-          <p class="text-2xl font-bold text-green-600">{{ report.collector_count }}</p>
+        <div class="bg-green-50 dark:bg-green-900/30 rounded-lg p-4">
+          <p class="text-sm text-gray-600 dark:text-gray-400">Times as Collector</p>
+          <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ report.collector_count }}</p>
         </div>
-        <div class="bg-red-50 rounded-lg p-4">
-          <p class="text-sm text-gray-600">Unpaid Incidents</p>
-          <p class="text-2xl font-bold text-red-600">{{ report.unpaid_count }}</p>
+        <div class="bg-red-50 dark:bg-red-900/30 rounded-lg p-4">
+          <p class="text-sm text-gray-600 dark:text-gray-400">Unpaid Incidents</p>
+          <p class="text-2xl font-bold text-red-600 dark:text-red-400">{{ report.unpaid_count }}</p>
         </div>
       </div>
     </div>

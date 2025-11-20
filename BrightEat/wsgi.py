@@ -1,5 +1,5 @@
 """
-WSGI config for BrightEat project.
+WSGI config for OrderQ project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
