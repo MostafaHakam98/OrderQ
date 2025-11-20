@@ -51,8 +51,25 @@ export const useOrdersStore = defineStore('orders', () => {
 
   async function fetchUsers() {
     try {
-      const response = await api.get('/users/')
-      return { success: true, data: response.data.results || response.data }
+      // Fetch all users with pagination support
+      let allUsers = []
+      let url = '/users/'
+      
+      while (url) {
+        const response = await api.get(url)
+        const data = response.data
+        if (data.results) {
+          // Paginated response
+          allUsers = allUsers.concat(data.results)
+          url = data.next || null
+        } else {
+          // Non-paginated response
+          allUsers = Array.isArray(data) ? data : [data]
+          url = null
+        }
+      }
+      
+      return { success: true, data: allUsers }
     } catch (error) {
       return { success: false, error: error.response?.data }
     }

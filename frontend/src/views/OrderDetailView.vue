@@ -246,15 +246,15 @@
             </div>
           </div>
 
-          <!-- Actions (Collector only) -->
-          <div v-if="currentOrder?.collector === authStore.user?.id" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-gray-700">
+          <!-- Actions (Collector and Manager) -->
+          <div v-if="currentOrder?.collector === authStore.user?.id || authStore.isManager" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-gray-700">
             <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Actions & Fees</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <p v-if="currentOrder?.collector === authStore.user?.id" class="text-sm text-gray-600 dark:text-gray-400 mb-4">
               <strong>How it works:</strong> You (the collector) pay the restaurant for everyone's items plus fees. 
               Then each person pays you back their share. Use the fee split rules below to calculate how much each person owes.
             </p>
             <div class="space-y-2">
-              <div v-if="currentOrder?.status === 'OPEN'">
+              <div v-if="currentOrder?.status === 'OPEN' && currentOrder?.collector === authStore.user?.id">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fees</label>
                 <input
                   v-model.number="fees.delivery_fee"
@@ -304,24 +304,27 @@
                   Update Fees
                 </button>
               <button
+                v-if="currentOrder?.status === 'OPEN' && (currentOrder?.collector === authStore.user?.id || authStore.isManager)"
                 @click="lockOrder"
                 class="w-full mt-2 bg-red-600 dark:bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-700 dark:hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
               >
                 🔒 Lock Order
               </button>
+              <!-- Collector Delete Button (only for OPEN orders, and not manager) -->
               <button
-                v-if="currentOrder?.status === 'LOCKED' && (currentOrder?.collector === authStore.user?.id || authStore.isManager)"
-                @click="unlockOrder"
-                class="w-full mt-2 bg-orange-600 dark:bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-700 dark:hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors"
-              >
-                🔓 Unlock Order
-              </button>
-              <button
-                v-if="(currentOrder?.status === 'OPEN' && (currentOrder?.collector === authStore.user?.id || authStore.isManager)) || (authStore.isManager && currentOrder?.status !== 'OPEN')"
+                v-if="!authStore.isManager && currentOrder?.status === 'OPEN' && currentOrder?.collector === authStore.user?.id"
                 @click="deleteOrder"
                 class="w-full mt-2 bg-red-800 dark:bg-red-700 text-white px-4 py-2 rounded-md hover:bg-red-900 dark:hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
               >
                 🗑️ Delete Order
+              </button>
+              <!-- Manager Delete Button in main section (when manager is also collector) -->
+              <button
+                v-if="authStore.isManager && currentOrder?.collector === authStore.user?.id"
+                @click="deleteOrder"
+                class="w-full mt-2 bg-red-800 dark:bg-red-700 text-white px-4 py-2 rounded-md hover:bg-red-900 dark:hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+              >
+                🗑️ Delete Order (Manager)
               </button>
               <!-- Assign Users Section (Compact) -->
               <div v-if="currentOrder?.status === 'OPEN'" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -436,12 +439,50 @@
                 </button>
               </div>
               </div>
+              <!-- Unlock button for LOCKED orders (visible to collector and manager) -->
               <button
-                v-if="currentOrder?.status === 'LOCKED'"
+                v-if="currentOrder?.status === 'LOCKED' && (currentOrder?.collector === authStore.user?.id || authStore.isManager)"
+                @click="unlockOrder"
+                class="w-full mt-2 bg-orange-600 dark:bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-700 dark:hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors"
+              >
+                🔓 Unlock Order
+              </button>
+              <!-- Mark as Ordered button (collector only) -->
+              <button
+                v-if="currentOrder?.status === 'LOCKED' && currentOrder?.collector === authStore.user?.id"
                 @click="markOrdered"
                 class="w-full bg-blue-600 dark:bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
               >
                 ✅ Mark as Ordered
+              </button>
+              <!-- Close Order button (collector and manager) -->
+              <button
+                v-if="currentOrder?.status === 'ORDERED' && (currentOrder?.collector === authStore.user?.id || authStore.isManager)"
+                @click="closeOrder"
+                class="w-full bg-gray-600 dark:bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-700 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+              >
+                🔚 Close Order
+              </button>
+            </div>
+          </div>
+          
+          <!-- Manager-only actions section (always visible for managers) -->
+          <div v-if="authStore.isManager" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-gray-700">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Manager Actions</h2>
+            <div class="space-y-2">
+              <button
+                v-if="currentOrder?.status === 'OPEN'"
+                @click="lockOrder"
+                class="w-full bg-red-600 dark:bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-700 dark:hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+              >
+                🔒 Lock Order
+              </button>
+              <button
+                v-if="currentOrder?.status === 'LOCKED'"
+                @click="unlockOrder"
+                class="w-full bg-orange-600 dark:bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-700 dark:hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors"
+              >
+                🔓 Unlock Order
               </button>
               <button
                 v-if="currentOrder?.status === 'ORDERED'"
@@ -449,6 +490,12 @@
                 class="w-full bg-gray-600 dark:bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-700 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
               >
                 🔚 Close Order
+              </button>
+              <button
+                @click="deleteOrder"
+                class="w-full bg-red-800 dark:bg-red-700 text-white px-4 py-2 rounded-md hover:bg-red-900 dark:hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+              >
+                🗑️ Delete Order
               </button>
             </div>
           </div>
@@ -471,11 +518,24 @@
           </div>
 
           <!-- Payment Breakdown (if locked) -->
-          <div v-if="currentOrder?.status !== 'OPEN' && currentOrder?.payments" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div v-if="currentOrder?.status !== 'OPEN' && currentOrder?.payments && currentOrder.payments.length > 0" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h2 class="text-xl font-semibold mb-4 dark:text-white">Payment Breakdown</h2>
-            <div class="space-y-3">
+            <!-- Show message if only collector's payment exists and it's paid -->
+            <div v-if="currentOrder.payments.length === 1 && currentOrder.payments[0].user === currentOrder?.collector && currentOrder.payments[0].is_paid" class="p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded">
+              <p class="text-sm text-gray-700 dark:text-gray-300">
+                ✅ Your payment ({{ formatPrice(currentOrder.payments[0].amount) }} EGP) has been automatically marked as paid since you are the collector.
+              </p>
+            </div>
+            <div v-else class="space-y-3">
               <div
-                v-for="payment in currentOrder.payments"
+                v-for="payment in currentOrder.payments.filter(p => {
+                  // Show all payments, but hide collector's payment only if it's paid and there are other payments
+                  // If collector is ordering only for themselves, show their payment
+                  if (p.user === currentOrder?.collector && p.is_paid && currentOrder.payments.length > 1) {
+                    return false
+                  }
+                  return true
+                })"
                 :key="payment.id"
                 :class="[
                   'flex items-center p-3 border rounded',

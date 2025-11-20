@@ -180,6 +180,9 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
             order.is_private = True
             order.save()
         
+        # Note: Order can be created without items initially, but items should be added before locking
+        # This allows for flexibility in order creation workflow
+        
         AuditLog.objects.create(
             order=order,
             user=self.request.user,
@@ -295,10 +298,17 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        if order.collector != request.user:
+        if order.collector != request.user and request.user.role != 'manager':
             return Response(
-                {'error': 'Only collector can lock order'}, 
+                {'error': 'Only collector or manager can lock order'}, 
                 status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Check if order has items before locking
+        if not order.items.exists():
+            return Response(
+                {'error': 'Cannot lock an order without items. Please add items first.'}, 
+                status=status.HTTP_400_BAD_REQUEST
             )
         
         order.status = 'LOCKED'
@@ -498,6 +508,9 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
         
         result = []
         for payment in payments:
+            # Skip collector's payment if they are the collector (should be auto-paid)
+            if payment.user == payment.order.collector:
+                continue
             result.append({
                 'order_id': payment.order.id,
                 'order_code': payment.order.code,
