@@ -225,7 +225,14 @@ DB_USER=postgres
 DB_PASSWORD=postgres
 DB_HOST=localhost
 DB_PORT=5432
+FRONTEND_URL=http://localhost:19991
+CITE_API_BASE_URL=https://your-cite-api-url.com
+CSRF_TRUSTED_ORIGINS=http://localhost:19991,http://127.0.0.1:19991,http://10.100.70.13:19991
 ```
+
+**Note:** 
+- `CSRF_TRUSTED_ORIGINS` should be a comma-separated list of trusted origins
+- `CITE_API_BASE_URL` is the base URL for the cite API service
 
 ## Development
 
