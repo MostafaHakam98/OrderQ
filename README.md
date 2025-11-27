@@ -1,4 +1,4 @@
-# BrightEat
+# OrderQ
 
 An internal food-ordering portal to replace WhatsApp collections for daily team meals.
 
@@ -31,7 +31,7 @@ An internal food-ordering portal to replace WhatsApp collections for daily team 
 
 1. **Clone and navigate to the project:**
    ```bash
-   cd BrightEat
+   cd OrderQ
    ```
 
 2. **Start all services:**
@@ -60,8 +60,8 @@ An internal food-ordering portal to replace WhatsApp collections for daily team 
    ```
 
 3. **Set up PostgreSQL database:**
-   - Create a database named `brighteat`
-   - Update database settings in `BrightEat/settings.py` or use environment variables
+  - Create a database named `orderq`
+  - Update database settings in `OrderQ/settings.py` or use environment variables
 
 4. **Run migrations:**
    ```bash
@@ -195,8 +195,8 @@ After running `python manage.py seed_data`, you can login with:
 ## Project Structure
 
 ```
-BrightEat/
-├── BrightEat/          # Django project settings
+OrderQ/
+├── OrderQ/          # Django project settings
 ├── orders/              # Main Django app
 │   ├── models.py       # Database models
 │   ├── serializers.py  # DRF serializers
@@ -220,12 +220,19 @@ Create a `.env` file in the root directory:
 ```env
 SECRET_KEY=your-secret-key
 DEBUG=True
-DB_NAME=brighteat
+DB_NAME=orderq
 DB_USER=postgres
 DB_PASSWORD=postgres
 DB_HOST=localhost
 DB_PORT=5432
+FRONTEND_URL=http://localhost:19991
+CITE_API_BASE_URL=https://your-cite-api-url.com
+CSRF_TRUSTED_ORIGINS=http://localhost:19991,http://127.0.0.1:19991,http://10.100.70.13:19991
 ```
+
+**Note:** 
+- `CSRF_TRUSTED_ORIGINS` should be a comma-separated list of trusted origins
+- `CITE_API_BASE_URL` is the base URL for the cite API service
 
 ## Development
 

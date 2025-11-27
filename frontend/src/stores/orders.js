@@ -51,8 +51,25 @@ export const useOrdersStore = defineStore('orders', () => {
 
   async function fetchUsers() {
     try {
-      const response = await api.get('/users/')
-      return { success: true, data: response.data.results || response.data }
+      // Fetch all users with pagination support
+      let allUsers = []
+      let url = '/users/'
+      
+      while (url) {
+        const response = await api.get(url)
+        const data = response.data
+        if (data.results) {
+          // Paginated response
+          allUsers = allUsers.concat(data.results)
+          url = data.next || null
+        } else {
+          // Non-paginated response
+          allUsers = Array.isArray(data) ? data : [data]
+          url = null
+        }
+      }
+      
+      return { success: true, data: allUsers }
     } catch (error) {
       return { success: false, error: error.response?.data }
     }
@@ -83,6 +100,32 @@ export const useOrdersStore = defineStore('orders', () => {
       const response = await api.post(`/orders/${orderId}/close/`)
       updateOrderInList(response.data)
       return { success: true, data: response.data }
+    } catch (error) {
+      return { success: false, error: error.response?.data }
+    }
+  }
+
+  async function unlockOrder(orderId) {
+    try {
+      const response = await api.post(`/orders/${orderId}/unlock/`)
+      updateOrderInList(response.data)
+      if (currentOrder.value?.id === response.data.id) {
+        currentOrder.value = response.data
+      }
+      return { success: true, data: response.data }
+    } catch (error) {
+      return { success: false, error: error.response?.data }
+    }
+  }
+
+  async function deleteOrder(orderId) {
+    try {
+      await api.delete(`/orders/${orderId}/`)
+      orders.value = orders.value.filter(o => o.id !== orderId)
+      if (currentOrder.value?.id === orderId) {
+        currentOrder.value = null
+      }
+      return { success: true }
     } catch (error) {
       return { success: false, error: error.response?.data }
     }
@@ -228,8 +271,10 @@ export const useOrdersStore = defineStore('orders', () => {
     createOrder,
     fetchUsers,
     lockOrder,
+    unlockOrder,
     markOrdered,
     closeOrder,
+    deleteOrder,
     fetchRestaurants,
     createRestaurant,
     updateRestaurant,

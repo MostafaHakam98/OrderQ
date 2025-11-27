@@ -2,6 +2,8 @@ from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
 from django.conf import settings
+from django.utils import timezone as tz
+from datetime import timedelta
 from .models import (
     User, Restaurant, Menu, MenuItem, CollectionOrder, 
     OrderItem, Payment, AuditLog, FeePreset, Recommendation
@@ -225,12 +227,8 @@ class CollectionOrderSerializer(serializers.ModelSerializer):
     
     def get_join_url(self, obj):
         request = self.context.get('request')
-        # Use frontend URL if available, otherwise construct from request
-        frontend_url = getattr(settings, 'FRONTEND_URL', None)
-        if frontend_url:
-            return f"{frontend_url}/join/{obj.code}"
-        elif request:
-            # Try to construct from request (for development)
+        # Prefer request host over FRONTEND_URL to get actual host
+        if request:
             scheme = request.scheme
             host = request.get_host()
             # Replace backend port with frontend port if needed
@@ -238,14 +236,43 @@ class CollectionOrderSerializer(serializers.ModelSerializer):
                 host = host.replace(':19992', ':19991')
             elif ':8000' in host:
                 host = host.replace(':8000', ':19991')
-            return f"{scheme}://{host}/join/{obj.code}"
+            # Always use request host, even if it's localhost (for development)
+            # In production, this will be the actual domain
+            if host:
+                return f"{scheme}://{host}/join/{obj.code}"
+        
+        # Fallback to FRONTEND_URL if no request available
+        frontend_url = getattr(settings, 'FRONTEND_URL', None)
+        if frontend_url:
+            return f"{frontend_url}/join/{obj.code}"
+        
         return f'/join/{obj.code}'
     
     def get_share_message(self, obj):
         request = self.context.get('request')
-        cutoff_str = obj.cutoff_time.strftime('%I:%M %p') if obj.cutoff_time else 'N/A'
+        # Format cutoff time in GMT+2 (Egypt timezone)
+        if obj.cutoff_time:
+            utc_time = obj.cutoff_time
+            if tz.is_aware(utc_time):
+                # Convert to Egypt timezone (GMT+2)
+                try:
+                    import pytz
+                    egypt_tz = pytz.timezone('Africa/Cairo')
+                    cutoff_local = utc_time.astimezone(egypt_tz)
+                    cutoff_str = cutoff_local.strftime('%I:%M %p')
+                except (ImportError, Exception):
+                    # Fallback: add 2 hours manually if pytz not available
+                    cutoff_local = utc_time + timedelta(hours=2)
+                    cutoff_str = cutoff_local.strftime('%I:%M %p')
+            else:
+                # If naive, assume it's UTC and add 2 hours
+                cutoff_local = utc_time + timedelta(hours=2)
+                cutoff_str = cutoff_local.strftime('%I:%M %p')
+        else:
+            cutoff_str = 'N/A'
+        
         join_url = self.get_join_url(obj)
-        message = (f"🍽️ BrightEat: Order from {obj.restaurant.name}\n"
+        message = (f"🍽️ OrderQ: Order from {obj.restaurant.name}\n"
                   f"📋 Join code: {obj.code}\n"
                   f"⏰ Cutoff: {cutoff_str}\n"
                   f"🔗 Add your items here: {join_url}\n"

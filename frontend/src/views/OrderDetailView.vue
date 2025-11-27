@@ -1,35 +1,35 @@
 <template>
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div v-if="loading" class="text-center py-8">
-      <p class="text-lg">Loading order...</p>
-      <p class="text-sm text-gray-500 mt-2">Code: {{ route.params.code }}</p>
+      <p class="text-lg text-gray-900 dark:text-white">Loading order...</p>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Code: {{ route.params.code }}</p>
     </div>
     <div v-else-if="error" class="text-center py-8">
-      <p class="text-red-600 text-lg mb-4">{{ error }}</p>
+      <p class="text-red-600 dark:text-red-400 text-lg mb-4">{{ error }}</p>
       <button
         @click="loadOrder()"
-        class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 mr-2"
+        class="bg-blue-600 dark:bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 mr-2"
       >
         Retry
       </button>
       <button
         @click="router.push('/orders')"
-        class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
+        class="bg-gray-600 dark:bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-700 dark:hover:bg-gray-600"
       >
         Back to Orders
       </button>
     </div>
-    <div v-else-if="!currentOrder" class="text-center py-8 text-gray-500">
+    <div v-else-if="!currentOrder" class="text-center py-8 text-gray-500 dark:text-gray-400">
       <p class="text-lg mb-4">Order not found</p>
       <button
         @click="loadOrder()"
-        class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 mr-2"
+        class="bg-blue-600 dark:bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 mr-2"
       >
         Retry
       </button>
       <button
         @click="router.push('/orders')"
-        class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
+        class="bg-gray-600 dark:bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-700 dark:hover:bg-gray-600"
       >
         Back to Orders
       </button>
@@ -38,32 +38,32 @@
       <div class="mb-6" v-if="currentOrder">
         <button
           @click="router.push('/orders')"
-          class="text-blue-600 hover:text-blue-800 mb-4 flex items-center"
+          class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 mb-4 flex items-center"
         >
           ← Back to Orders
         </button>
         <div class="flex justify-between items-start">
           <div>
-            <h1 class="text-3xl font-bold text-gray-900">{{ currentOrder?.restaurant_name || 'Unknown Restaurant' }}</h1>
-            <p class="text-gray-600 mt-2">Code: <span class="font-mono font-semibold text-blue-600">{{ currentOrder?.code || 'N/A' }}</span></p>
-            <p class="text-gray-600">Collector: <span class="font-semibold">{{ currentOrder?.collector_name || 'N/A' }}</span></p>
-            <p v-if="currentOrder?.cutoff_time" class="text-gray-600">Cutoff: <span class="font-semibold">{{ new Date(currentOrder.cutoff_time).toLocaleString() }}</span></p>
-            <p v-if="currentOrder?.assigned_users_details && currentOrder.assigned_users_details.length > 0" class="text-gray-600 mt-2">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ currentOrder?.restaurant_name || 'Unknown Restaurant' }}</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-2">Code: <span class="font-mono font-semibold text-blue-600 dark:text-blue-400">{{ currentOrder?.code || 'N/A' }}</span></p>
+            <p class="text-gray-600 dark:text-gray-400">Collector: <span class="font-semibold">{{ currentOrder?.collector_name || 'N/A' }}</span></p>
+            <p v-if="currentOrder?.cutoff_time" class="text-gray-600 dark:text-gray-400">Cutoff: <span class="font-semibold">{{ formatCutoffTime(currentOrder.cutoff_time) }}</span></p>
+            <p v-if="currentOrder?.assigned_users_details && currentOrder.assigned_users_details.length > 0" class="text-gray-600 dark:text-gray-400 mt-2">
               <span class="font-semibold">Assigned to:</span> 
-              <span class="text-blue-600">{{ currentOrder.assigned_users_details.map(u => u.username).join(', ') }}</span>
+              <span class="text-blue-600 dark:text-blue-400">{{ currentOrder.assigned_users_details.map(u => u.username).join(', ') }}</span>
             </p>
-            <p v-if="currentOrder?.is_private" class="text-xs text-gray-500 mt-1">🔒 Private Order</p>
+            <p v-if="currentOrder?.is_private" class="text-xs text-gray-500 dark:text-gray-400 mt-1">🔒 Private Order</p>
           </div>
           <div class="text-right">
             <div class="inline-block px-4 py-2 rounded-lg font-semibold" :class="{
-              'bg-green-100 text-green-800': currentOrder?.status === 'OPEN',
-              'bg-yellow-100 text-yellow-800': currentOrder?.status === 'LOCKED',
-              'bg-blue-100 text-blue-800': currentOrder?.status === 'ORDERED',
-              'bg-gray-100 text-gray-800': currentOrder?.status === 'CLOSED',
+              'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300': currentOrder?.status === 'OPEN',
+              'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300': currentOrder?.status === 'LOCKED',
+              'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300': currentOrder?.status === 'ORDERED',
+              'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300': currentOrder?.status === 'CLOSED',
             }">
               Status: {{ currentOrder?.status || 'UNKNOWN' }}
             </div>
-            <p v-if="currentOrder?.status && currentOrder.status !== 'OPEN'" class="text-sm text-gray-500 mt-2">
+            <p v-if="currentOrder?.status && currentOrder.status !== 'OPEN'" class="text-sm text-gray-500 dark:text-gray-400 mt-2">
               {{ currentOrder.status === 'LOCKED' ? 'Order is locked. No items can be added or removed.' : '' }}
               {{ currentOrder.status === 'ORDERED' ? 'Order has been placed.' : '' }}
               {{ currentOrder.status === 'CLOSED' ? 'Order is closed.' : '' }}
@@ -75,21 +75,21 @@
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" v-if="currentOrder">
         <div class="lg:col-span-2 space-y-6">
           <!-- Assigned Users Notice -->
-          <div v-if="currentOrder?.assigned_users_details && currentOrder.assigned_users_details.length > 0" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p class="text-sm font-medium text-blue-900 mb-1">👥 Assigned Order</p>
-            <p class="text-xs text-blue-700">This order is assigned to specific users. Only assigned users can join.</p>
-            <p class="text-xs text-blue-600 mt-1">
+          <div v-if="currentOrder?.assigned_users_details && currentOrder.assigned_users_details.length > 0" class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+            <p class="text-sm font-medium text-blue-900 dark:text-blue-300 mb-1">👥 Assigned Order</p>
+            <p class="text-xs text-blue-700 dark:text-blue-400">This order is assigned to specific users. Only assigned users can join.</p>
+            <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">
               Assigned to: {{ currentOrder.assigned_users_details.map(u => u.username).join(', ') }}
             </p>
           </div>
           
           <!-- Status Message for Locked/Ordered/Closed -->
-          <div v-if="currentOrder?.status !== 'OPEN'" class="bg-white rounded-lg shadow p-6">
+          <div v-if="currentOrder?.status !== 'OPEN'" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div class="text-center py-4">
-              <p class="text-lg font-semibold mb-2">
+              <p class="text-lg font-semibold mb-2 dark:text-white">
                 Order is {{ currentOrder.status }}
               </p>
-              <p class="text-gray-600 text-sm">
+              <p class="text-gray-600 dark:text-gray-400 text-sm">
                 {{ currentOrder.status === 'LOCKED' ? 'The collector has locked this order. Items cannot be added or removed.' : '' }}
                 {{ currentOrder.status === 'ORDERED' ? 'This order has been placed with the restaurant.' : '' }}
                 {{ currentOrder.status === 'CLOSED' ? 'This order is closed.' : '' }}
@@ -98,20 +98,20 @@
           </div>
 
           <!-- Add Items Section (only if OPEN) -->
-          <div v-if="currentOrder?.status === 'OPEN'" class="bg-white rounded-lg shadow-md p-6 border border-gray-100">
-            <h2 class="text-xl font-semibold mb-4 text-gray-800">Add Items to Order</h2>
+          <div v-if="currentOrder?.status === 'OPEN'" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-gray-700">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Add Items to Order</h2>
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Menu Item
-                  <span v-if="currentOrder?.menu_name" class="text-xs text-gray-500 font-normal">
+                  <span v-if="currentOrder?.menu_name" class="text-xs text-gray-500 dark:text-gray-400 font-normal">
                     ({{ currentOrder.menu_name }})
                   </span>
                 </label>
                 <select
                   v-model="selectedMenuItem"
                   :disabled="availableMenuItems.length === 0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-white"
                 >
                   <option value="">
                     {{ availableMenuItems.length === 0 ? 'No menu items available' : 'Select menu item' }}
@@ -120,7 +120,7 @@
                     {{ item.name }} - {{ item.price }} EGP
                   </option>
                 </select>
-                <p v-if="availableMenuItems.length === 0" class="mt-1 text-xs text-gray-500">
+                <p v-if="availableMenuItems.length === 0" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   No menu items found for this order's menu. You can still add custom items below.
                 </p>
               </div>
@@ -157,37 +157,37 @@
                   type="number"
                   min="1"
                   placeholder="Quantity"
-                  class="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+                  class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
                 />
                 <button
                   @click="addMenuItem"
                   :disabled="!selectedMenuItem || !itemQuantity"
-                  class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  class="bg-blue-600 dark:bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50"
                 >
                   Add
                 </button>
               </div>
-              <div class="border-t pt-4">
-                <p class="text-sm font-medium text-gray-700 mb-2">Or add custom item:</p>
+              <div class="border-t dark:border-gray-700 pt-4">
+                <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Or add custom item:</p>
                 <div class="space-y-2">
                   <div class="flex space-x-2">
                     <input
                       v-model="customItemName"
                       type="text"
                       placeholder="Item name"
-                      class="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+                      class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
                     />
                     <input
                       v-model.number="customItemPrice"
                       type="number"
                       step="0.01"
                       placeholder="Price"
-                      class="w-24 px-3 py-2 border border-gray-300 rounded-md"
+                      class="w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
                     />
                     <button
                       @click="addCustomItem"
                       :disabled="!customItemName || !customItemPrice"
-                      class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50"
+                      class="bg-green-600 dark:bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-700 dark:hover:bg-green-600 disabled:opacity-50"
                     >
                       Add Custom
                     </button>
@@ -201,9 +201,9 @@
           </div>
 
           <!-- Order Items -->
-          <div class="bg-white rounded-lg shadow-md p-6 border border-gray-100">
-            <h2 class="text-xl font-semibold mb-4 text-gray-800">Order Items</h2>
-            <div v-if="!currentOrder?.items || currentOrder.items.length === 0" class="text-gray-500 text-center py-4">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-gray-700">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Order Items</h2>
+            <div v-if="!currentOrder?.items || currentOrder.items.length === 0" class="text-gray-500 dark:text-gray-400 text-center py-4">
               No items yet. {{ currentOrder?.status === 'OPEN' ? 'Add items above!' : '' }}
             </div>
             <div v-else class="space-y-2">
@@ -212,24 +212,24 @@
                 :key="item.id"
                 :class="[
                   'flex justify-between items-center p-3 border rounded',
-                  item.user === authStore.user?.id ? 'border-blue-300 bg-blue-50' : 'border-gray-200'
+                  item.user === authStore.user?.id ? 'border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/30' : 'border-gray-200 dark:border-gray-700'
                 ]"
               >
                 <div class="flex-1">
                   <div class="flex items-center space-x-2">
-                    <p class="font-medium">{{ item.item_name }}</p>
-                    <span v-if="item.user === authStore.user?.id" class="text-xs bg-blue-600 text-white px-2 py-0.5 rounded">
+                    <p class="font-medium dark:text-white">{{ item.item_name }}</p>
+                    <span v-if="item.user === authStore.user?.id" class="text-xs bg-blue-600 dark:bg-blue-500 text-white px-2 py-0.5 rounded">
                       Your Item
                     </span>
                   </div>
-                  <p class="text-sm text-gray-600">{{ item.user_name }} - Qty: {{ item.quantity }} × {{ formatPrice(item.unit_price) }} EGP</p>
+                  <p class="text-sm text-gray-600 dark:text-gray-400">{{ item.user_name }} - Qty: {{ item.quantity }} × {{ formatPrice(item.unit_price) }} EGP</p>
                 </div>
                 <div class="flex items-center space-x-4">
-                  <span class="font-semibold">{{ formatPrice(item.total_price) }} EGP</span>
+                  <span class="font-semibold dark:text-white">{{ formatPrice(item.total_price) }} EGP</span>
                   <button
                     v-if="currentOrder?.status === 'OPEN' && item.user === authStore.user?.id"
                     @click="removeItem(item.id)"
-                    class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                    class="bg-red-600 dark:bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-700 dark:hover:bg-red-600"
                     title="Remove your item"
                   >
                     Remove
@@ -237,12 +237,12 @@
                   <button
                     v-if="currentOrder?.status === 'OPEN' && currentOrder.collector === authStore.user?.id && item.user !== authStore.user?.id"
                     @click="removeItem(item.id)"
-                    class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                    class="bg-red-600 dark:bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-700 dark:hover:bg-red-600"
                     title="Remove item (collector)"
                   >
                     Remove
                   </button>
-                  <span v-if="currentOrder?.status !== 'OPEN'" class="text-xs text-gray-400">Locked</span>
+                  <span v-if="currentOrder?.status !== 'OPEN'" class="text-xs text-gray-400 dark:text-gray-500">Locked</span>
                 </div>
               </div>
             </div>
@@ -252,72 +252,72 @@
         <!-- Sidebar -->
         <div class="space-y-6">
           <!-- Order Summary -->
-          <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold mb-4">Summary</h2>
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4 dark:text-white">Summary</h2>
             <div class="space-y-2 text-sm">
-              <div class="flex justify-between">
+              <div class="flex justify-between dark:text-gray-300">
                 <span>Items Total:</span>
                 <span>{{ formatPrice(currentOrder?.total_items_cost) }} EGP</span>
               </div>
-              <div class="flex justify-between">
+              <div class="flex justify-between dark:text-gray-300">
                 <span>Delivery:</span>
                 <span>{{ formatPrice(currentOrder?.delivery_fee) }} EGP</span>
               </div>
-              <div class="flex justify-between">
+              <div class="flex justify-between dark:text-gray-300">
                 <span>Tip:</span>
                 <span>{{ formatPrice(currentOrder?.tip) }} EGP</span>
               </div>
-              <div class="flex justify-between">
+              <div class="flex justify-between dark:text-gray-300">
                 <span>Service:</span>
                 <span>{{ formatPrice(currentOrder?.service_fee) }} EGP</span>
               </div>
-              <div class="border-t pt-2 flex justify-between font-semibold">
+              <div class="border-t dark:border-gray-700 pt-2 flex justify-between font-semibold dark:text-white">
                 <span>Total:</span>
                 <span>{{ formatPrice(currentOrder?.total_cost) }} EGP</span>
               </div>
             </div>
           </div>
 
-          <!-- Actions (Collector only) -->
-          <div v-if="currentOrder?.collector === authStore.user?.id" class="bg-white rounded-lg shadow-md p-6 border border-gray-100">
-            <h2 class="text-xl font-semibold mb-4 text-gray-800">Actions & Fees</h2>
-            <p class="text-sm text-gray-600 mb-4">
+          <!-- Actions (Collector and Manager) -->
+          <div v-if="currentOrder?.collector === authStore.user?.id || authStore.isManager" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-gray-700">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Actions & Fees</h2>
+            <p v-if="currentOrder?.collector === authStore.user?.id" class="text-sm text-gray-600 dark:text-gray-400 mb-4">
               <strong>How it works:</strong> You (the collector) pay the restaurant for everyone's items plus fees. 
               Then each person pays you back their share. Use the fee split rules below to calculate how much each person owes.
             </p>
             <div class="space-y-2">
-              <div v-if="currentOrder?.status === 'OPEN'">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Fees</label>
+              <div v-if="currentOrder?.status === 'OPEN' && currentOrder?.collector === authStore.user?.id">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fees</label>
                 <input
                   v-model.number="fees.delivery_fee"
                   type="number"
                   step="0.01"
                   placeholder="Delivery Fee"
-                  class="w-full mb-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                  class="w-full mb-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
                 />
                 <input
                   v-model.number="fees.tip"
                   type="number"
                   step="0.01"
                   placeholder="Tip"
-                  class="w-full mb-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                  class="w-full mb-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
                 />
                 <input
                   v-model.number="fees.service_fee"
                   type="number"
                   step="0.01"
                   placeholder="Service Fee"
-                  class="w-full mb-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                  class="w-full mb-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
                 />
                 <select
                   v-model="fees.fee_split_rule"
-                  class="w-full mb-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                  class="w-full mb-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 dark:bg-gray-700 dark:text-white"
                 >
                   <option value="equal">Equal Split - Fees divided equally</option>
                   <option value="proportional">Proportional - Based on item cost</option>
                   <option value="collector_pays">Collector Pays - You pay all fees</option>
                 </select>
-                <p class="text-xs text-gray-500 mt-1 mb-2">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-2">
                   <strong>Fee Split Rules:</strong><br>
                   • <strong>Equal:</strong> Fees split equally among everyone<br>
                   • <strong>Proportional:</strong> Fees split based on each person's item cost<br>
@@ -327,56 +327,66 @@
                   v-model="fees.instapay_link"
                   type="url"
                   placeholder="Instapay Link"
-                  class="w-full mb-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                  class="w-full mb-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
                 />
                 <button
                   @click="updateFees"
-                  class="w-full bg-yellow-600 text-white px-4 py-2 rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-colors"
+                  class="w-full bg-yellow-600 dark:bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-700 dark:hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-colors"
                 >
                   Update Fees
                 </button>
               <button
+                v-if="currentOrder?.status === 'OPEN' && (currentOrder?.collector === authStore.user?.id || authStore.isManager)"
                 @click="lockOrder"
-                class="w-full mt-2 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+                class="w-full mt-2 bg-red-600 dark:bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-700 dark:hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
               >
                 🔒 Lock Order
               </button>
+              <!-- Collector Delete Button (only for OPEN orders, and not manager) -->
               <button
-                v-if="currentOrder?.status === 'OPEN' && (currentOrder?.collector === authStore.user?.id || authStore.isManager)"
+                v-if="!authStore.isManager && currentOrder?.status === 'OPEN' && currentOrder?.collector === authStore.user?.id"
                 @click="deleteOrder"
-                class="w-full mt-2 bg-red-800 text-white px-4 py-2 rounded-md hover:bg-red-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+                class="w-full mt-2 bg-red-800 dark:bg-red-700 text-white px-4 py-2 rounded-md hover:bg-red-900 dark:hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
               >
                 🗑️ Delete Order
               </button>
+              <!-- Manager Delete Button in main section (when manager is also collector) -->
+              <button
+                v-if="authStore.isManager && currentOrder?.collector === authStore.user?.id"
+                @click="deleteOrder"
+                class="w-full mt-2 bg-red-800 dark:bg-red-700 text-white px-4 py-2 rounded-md hover:bg-red-900 dark:hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+              >
+                🗑️ Delete Order (Manager)
+              </button>
               <!-- Assign Users Section (Compact) -->
-              <div v-if="currentOrder?.status === 'OPEN'" class="mt-4 pt-4 border-t border-gray-200">
+              <div v-if="currentOrder?.status === 'OPEN'" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <button
                   @click="toggleAssignUsers"
-                  class="w-full flex items-center justify-between text-sm text-gray-700 hover:text-gray-900 py-2"
+                  class="w-full flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white py-2"
                 >
                   <span class="flex items-center">
                     <span class="mr-2">👥</span>
                     <span>Assign to Specific Users</span>
-                    <span v-if="currentOrder?.assigned_users_details?.length > 0" class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                    <span v-if="currentOrder?.assigned_users_details?.length > 0" class="ml-2 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-full">
                       {{ currentOrder.assigned_users_details.length }}
                     </span>
                   </span>
-                  <span class="text-gray-400">{{ showAssignUsers ? '▼' : '▶' }}</span>
+                  <span class="text-gray-400 dark:text-gray-500">{{ showAssignUsers ? '▼' : '▶' }}</span>
                 </button>
-                <div v-if="showAssignUsers" class="mt-3 space-y-2 bg-gray-50 p-3 rounded-md">
-                  <p class="text-xs text-gray-600 mb-2">Select users for special orders (e.g., birthday cake). Order will be private.</p>
+                <div v-if="showAssignUsers" class="mt-3 space-y-2 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-md">
+                  <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">Select users for special orders (e.g., birthday cake). Order will be private.</p>
                   <div class="flex space-x-1 mb-2">
                     <button
                       type="button"
                       @click="selectAllUsers"
-                      class="text-xs bg-white hover:bg-gray-100 text-gray-700 px-2 py-1 rounded border border-gray-300"
+                      class="text-xs bg-white dark:bg-gray-600 hover:bg-gray-100 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-300 px-2 py-1 rounded border border-gray-300 dark:border-gray-500"
                     >
                       All
                     </button>
                     <button
                       type="button"
                       @click="deselectAllUsers"
-                      class="text-xs bg-white hover:bg-gray-100 text-gray-700 px-2 py-1 rounded border border-gray-300"
+                      class="text-xs bg-white dark:bg-gray-600 hover:bg-gray-100 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-300 px-2 py-1 rounded border border-gray-300 dark:border-gray-500"
                     >
                       None
                     </button>
@@ -384,43 +394,43 @@
                   <select
                     v-model="selectedUsers"
                     multiple
-                    class="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    class="w-full text-sm px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                     size="4"
                   >
                     <option v-for="user in allUsers" :key="user.id" :value="user.id">
                       {{ user.username }}
                     </option>
                   </select>
-                  <p v-if="selectedUsers.length > 0" class="text-xs text-blue-600 mt-1">
+                  <p v-if="selectedUsers.length > 0" class="text-xs text-blue-600 dark:text-blue-400 mt-1">
                     {{ selectedUsers.length }} selected
                   </p>
                   
                   <!-- Even Split Option -->
-                  <div class="mt-3 pt-3 border-t border-gray-300">
-                    <p class="text-xs font-medium text-gray-700 mb-2">Optional: Split evenly among assigned users</p>
+                  <div class="mt-3 pt-3 border-t border-gray-300 dark:border-gray-600">
+                    <p class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Optional: Split evenly among assigned users</p>
                     <div class="space-y-2">
                       <div>
-                        <label class="block text-xs text-gray-600 mb-1">Number of items per user</label>
+                        <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">Number of items per user</label>
                         <input
                           v-model.number="assignmentItems"
                           type="number"
                           min="1"
                           placeholder="e.g., 2"
-                          class="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                          class="w-full text-sm px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
                         />
                       </div>
                       <div>
-                        <label class="block text-xs text-gray-600 mb-1">Total cost (including delivery/fees)</label>
+                        <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">Total cost (including delivery/fees)</label>
                         <input
                           v-model.number="assignmentTotalCost"
                           type="number"
                           step="0.01"
                           min="0"
                           placeholder="e.g., 500"
-                          class="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                          class="w-full text-sm px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
                         />
                       </div>
-                      <p v-if="assignmentItems && assignmentTotalCost && selectedUsers.length > 0" class="text-xs text-green-600 mt-1">
+                      <p v-if="assignmentItems && assignmentTotalCost && selectedUsers.length > 0" class="text-xs text-green-600 dark:text-green-400 mt-1">
                         Each user will get {{ assignmentItems }} item(s) × {{ formatPrice(assignmentTotalCost / selectedUsers.length / assignmentItems) }} EGP = {{ formatPrice(assignmentTotalCost / selectedUsers.length) }} EGP per user
                       </p>
                     </div>
@@ -429,18 +439,18 @@
                   <button
                     @click="updateAssignedUsers"
                     :disabled="loading || (assignmentItems && !assignmentTotalCost) || (assignmentTotalCost && !assignmentItems)"
-                    class="w-full text-xs bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 disabled:opacity-50 mt-3"
+                    class="w-full text-xs bg-blue-600 dark:bg-blue-500 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 mt-3"
                   >
                     {{ loading ? 'Saving...' : 'Save Assignment' }}
                   </button>
                 </div>
               </div>
               
-              <div v-if="currentOrder?.status === 'OPEN' && currentOrder?.collector === authStore.user?.id && currentOrder?.participants?.length > 1" class="mt-4 pt-4 border-t border-gray-200">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Transfer Collector Role</label>
+              <div v-if="currentOrder?.status === 'OPEN' && currentOrder?.collector === authStore.user?.id && currentOrder?.participants?.length > 1" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Transfer Collector Role</label>
                 <select
                   v-model="transferCollectorId"
-                  class="w-full mb-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  class="w-full mb-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white"
                 >
                   <option value="">Select new collector</option>
                   <option
@@ -455,97 +465,154 @@
                 <button
                   @click="transferCollector"
                   :disabled="!transferCollectorId"
-                  class="w-full bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                  class="w-full bg-purple-600 dark:bg-purple-500 text-white px-4 py-2 rounded-md hover:bg-purple-700 dark:hover:bg-purple-600 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
                 >
                   Transfer Collector Role
                 </button>
               </div>
               </div>
+              <!-- Unlock button for LOCKED orders (visible to collector and manager) -->
               <button
-                v-if="currentOrder?.status === 'LOCKED'"
+                v-if="currentOrder?.status === 'LOCKED' && (currentOrder?.collector === authStore.user?.id || authStore.isManager)"
+                @click="unlockOrder"
+                class="w-full mt-2 bg-orange-600 dark:bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-700 dark:hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors"
+              >
+                🔓 Unlock Order
+              </button>
+              <!-- Mark as Ordered button (collector only) -->
+              <button
+                v-if="currentOrder?.status === 'LOCKED' && currentOrder?.collector === authStore.user?.id"
                 @click="markOrdered"
-                class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                class="w-full bg-blue-600 dark:bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
               >
                 ✅ Mark as Ordered
               </button>
+              <!-- Close Order button (collector and manager) -->
               <button
-                v-if="currentOrder?.status === 'ORDERED'"
+                v-if="currentOrder?.status === 'ORDERED' && (currentOrder?.collector === authStore.user?.id || authStore.isManager)"
                 @click="closeOrder"
-                class="w-full bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+                class="w-full bg-gray-600 dark:bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-700 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
               >
                 🔚 Close Order
               </button>
             </div>
           </div>
 
+          <!-- Manager-only actions section (always visible for managers) -->
+          <div v-if="authStore.isManager" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-gray-700">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Manager Actions</h2>
+            <div class="space-y-2">
+              <button
+                v-if="currentOrder?.status === 'OPEN'"
+                @click="lockOrder"
+                class="w-full bg-red-600 dark:bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-700 dark:hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+              >
+                🔒 Lock Order
+              </button>
+              <button
+                v-if="currentOrder?.status === 'LOCKED'"
+                @click="unlockOrder"
+                class="w-full bg-orange-600 dark:bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-700 dark:hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors"
+              >
+                🔓 Unlock Order
+              </button>
+              <button
+                v-if="currentOrder?.status === 'ORDERED'"
+                @click="closeOrder"
+                class="w-full bg-gray-600 dark:bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-700 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+              >
+                🔚 Close Order
+              </button>
+              <button
+                @click="deleteOrder"
+                class="w-full bg-red-800 dark:bg-red-700 text-white px-4 py-2 rounded-md hover:bg-red-900 dark:hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+              >
+                🗑️ Delete Order
+              </button>
+            </div>
+          </div>
+
           <!-- Share Message -->
-          <div class="bg-white rounded-lg shadow-md p-6 border border-gray-100">
-            <h2 class="text-xl font-semibold mb-4 text-gray-800">Share Message</h2>
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-gray-700">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Share Message</h2>
             <textarea
               :value="currentOrder?.share_message || ''"
               readonly
-              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm dark:bg-gray-700 dark:text-white"
               rows="4"
             ></textarea>
             <button
               @click="copyShareMessage"
-              class="mt-2 w-full bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+              class="mt-2 w-full bg-green-600 dark:bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-700 dark:hover:bg-green-600"
             >
               Copy Message
             </button>
           </div>
 
           <!-- Payment Breakdown (if locked) -->
-          <div v-if="currentOrder?.status !== 'OPEN' && currentOrder?.payments" class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold mb-4">Payment Breakdown</h2>
-            <div class="space-y-3">
+          <div v-if="currentOrder?.status !== 'OPEN' && currentOrder?.payments && currentOrder.payments.length > 0" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4 dark:text-white">Payment Breakdown</h2>
+            <!-- Show message if only collector's payment exists and it's paid -->
+            <div v-if="currentOrder.payments.length === 1 && currentOrder.payments[0].user === currentOrder?.collector && currentOrder.payments[0].is_paid" class="p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded">
+              <p class="text-sm text-gray-700 dark:text-gray-300">
+                ✅ Your payment ({{ formatPrice(currentOrder.payments[0].amount) }} EGP) has been automatically marked as paid since you are the collector.
+              </p>
+            </div>
+            <div v-else class="space-y-3">
               <div
-                v-for="payment in currentOrder.payments"
+                v-for="payment in currentOrder.payments.filter(p => {
+                  // Show all payments, but hide collector's payment only if it's paid and there are other payments
+                  // If collector is ordering only for themselves, show their payment
+                  if (p.user === currentOrder?.collector && p.is_paid && currentOrder.payments.length > 1) {
+                    return false
+                  }
+                  return true
+                })"
                 :key="payment.id"
                 :class="[
-                  'flex justify-between items-center p-3 border rounded',
-                  payment.is_paid ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'
+                  'flex items-center p-3 border rounded',
+                  payment.is_paid ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700' : 'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-200 dark:border-yellow-700'
                 ]"
               >
-                <div class="flex-1">
-                  <p class="font-medium">{{ payment.user_name }}</p>
-                  <p class="text-sm text-gray-600">
+                <div class="flex-1 min-w-0">
+                  <p class="font-medium dark:text-white">{{ payment.user_name }}</p>
+                  <p class="text-sm text-gray-600 dark:text-gray-400">
                     {{ payment.is_paid ? '✅ Paid' : '⏳ Pending' }}
                     <span v-if="payment.paid_at" class="ml-2 text-xs">
                       ({{ new Date(payment.paid_at).toLocaleString() }})
                     </span>
                   </p>
                 </div>
-                <div class="text-right">
-                  <p class="font-semibold text-lg">{{ formatPrice(payment.amount) }} EGP</p>
+                <div class="text-right mx-4 flex-shrink-0">
+                  <p class="font-semibold text-lg dark:text-white whitespace-nowrap">{{ formatPrice(payment.amount) }} EGP</p>
                   <button
                     v-if="!payment.is_paid && currentOrder?.instapay_link && payment.user === authStore.user?.id"
                     @click="openInstapay"
-                    class="mt-1 text-xs text-blue-600 hover:text-blue-800 underline"
+                    class="mt-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
                   >
                     Pay via Instapay
                   </button>
                 </div>
                 <button
-                  v-if="!payment.is_paid && (currentOrder?.collector === authStore.user?.id || payment.user === authStore.user?.id)"
+                  v-if="!payment.is_paid && payment.user !== currentOrder?.collector && (currentOrder?.collector === authStore.user?.id || payment.user === authStore.user?.id)"
                   @click="markPaymentPaid(payment.id)"
-                  class="ml-2 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+                  class="bg-green-600 dark:bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-700 dark:hover:bg-green-600 flex-shrink-0"
                 >
                   {{ payment.user === authStore.user?.id ? 'Mark as Paid' : 'Mark Paid' }}
                 </button>
               </div>
             </div>
-            <div v-if="currentOrder?.instapay_link && currentOrder.collector === authStore.user?.id" class="mt-4 p-3 bg-blue-50 rounded">
-              <p class="text-sm font-medium mb-2">Instapay Link:</p>
+            <div v-if="currentOrder?.instapay_link && currentOrder.collector === authStore.user?.id" class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded">
+              <p class="text-sm font-medium mb-2 dark:text-white">Instapay Link:</p>
               <div class="flex items-center space-x-2">
                 <input
                   :value="currentOrder.instapay_link"
                   readonly
-                  class="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                  class="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm dark:bg-gray-700 dark:text-white"
                 />
                 <button
                   @click="copyInstapayLink"
-                  class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                  class="bg-blue-600 dark:bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 dark:hover:bg-blue-600"
                 >
                   Copy
                 </button>
@@ -554,34 +621,34 @@
           </div>
 
           <!-- Instapay QR Code (if locked/ordered/closed and collector has Instapay link or QR code) -->
-          <div v-if="currentOrder?.status !== 'OPEN' && (currentOrder?.collector_instapay_link || currentOrder?.collector_instapay_qr_code_url)" class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold mb-4">Pay via Instapay</h2>
-            <p class="text-sm text-gray-600 mb-4">Scan the QR code below to pay {{ currentOrder?.collector_name }} via Instapay</p>
+          <div v-if="currentOrder?.status !== 'OPEN' && (currentOrder?.collector_instapay_link || currentOrder?.collector_instapay_qr_code_url)" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4 dark:text-white">Pay via Instapay</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Scan the QR code below to pay {{ currentOrder?.collector_name }} via Instapay</p>
             <div class="flex flex-col items-center">
               <!-- Show uploaded QR code image if available, otherwise generate from link -->
               <img
                 v-if="currentOrder?.collector_instapay_qr_code_url"
                 :src="currentOrder.collector_instapay_qr_code_url"
                 alt="Instapay QR Code"
-                class="border border-gray-300 rounded mb-4 max-w-xs"
+                class="border border-gray-300 dark:border-gray-600 rounded mb-4 max-w-xs"
               />
               <canvas
                 v-else-if="currentOrder?.collector_instapay_link"
                 ref="instapayQrCanvas"
-                class="border border-gray-300 rounded mb-4"
+                class="border border-gray-300 dark:border-gray-600 rounded mb-4"
               ></canvas>
               <a
                 v-if="currentOrder?.collector_instapay_link"
                 :href="currentOrder.collector_instapay_link"
                 target="_blank"
-                class="text-blue-600 hover:text-blue-800 underline text-sm"
+                class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline text-sm"
               >
                 {{ currentOrder.collector_instapay_link }}
               </a>
               <button
                 v-if="currentOrder?.collector_instapay_link"
                 @click="copyCollectorInstapayLink"
-                class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                class="mt-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 text-sm"
               >
                 Copy Link
               </button>
@@ -589,41 +656,41 @@
           </div>
           
           <!-- Receipt View (if ordered) -->
-          <div v-if="currentOrder?.status === 'ORDERED' || currentOrder?.status === 'CLOSED'" class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold mb-4">Order Receipt</h2>
+          <div v-if="currentOrder?.status === 'ORDERED' || currentOrder?.status === 'CLOSED'" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4 dark:text-white">Order Receipt</h2>
             <div class="space-y-2 text-sm">
-              <div class="flex justify-between border-b pb-2">
+              <div class="flex justify-between border-b dark:border-gray-700 pb-2 dark:text-gray-300">
                 <span class="font-medium">Restaurant:</span>
                 <span>{{ currentOrder?.restaurant_name }}</span>
               </div>
-              <div class="flex justify-between border-b pb-2">
+              <div class="flex justify-between border-b dark:border-gray-700 pb-2 dark:text-gray-300">
                 <span class="font-medium">Order Code:</span>
                 <span class="font-mono">{{ currentOrder?.code }}</span>
               </div>
-              <div class="flex justify-between border-b pb-2">
+              <div class="flex justify-between border-b dark:border-gray-700 pb-2 dark:text-gray-300">
                 <span class="font-medium">Items Total:</span>
                 <span>{{ formatPrice(currentOrder?.total_items_cost) }} EGP</span>
               </div>
-              <div class="flex justify-between border-b pb-2">
+              <div class="flex justify-between border-b dark:border-gray-700 pb-2 dark:text-gray-300">
                 <span class="font-medium">Delivery:</span>
                 <span>{{ formatPrice(currentOrder?.delivery_fee) }} EGP</span>
               </div>
-              <div class="flex justify-between border-b pb-2">
+              <div class="flex justify-between border-b dark:border-gray-700 pb-2 dark:text-gray-300">
                 <span class="font-medium">Tip:</span>
                 <span>{{ formatPrice(currentOrder?.tip) }} EGP</span>
               </div>
-              <div class="flex justify-between border-b pb-2">
+              <div class="flex justify-between border-b dark:border-gray-700 pb-2 dark:text-gray-300">
                 <span class="font-medium">Service Fee:</span>
                 <span>{{ formatPrice(currentOrder?.service_fee) }} EGP</span>
               </div>
-              <div class="flex justify-between pt-2 font-bold text-lg">
+              <div class="flex justify-between pt-2 font-bold text-lg dark:text-white">
                 <span>Total:</span>
                 <span>{{ formatPrice(currentOrder?.total_cost) }} EGP</span>
               </div>
             </div>
             <button
               @click="copyReceipt"
-              class="mt-4 w-full bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
+              class="mt-4 w-full bg-gray-600 dark:bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-700 dark:hover:bg-gray-600"
             >
               Copy Receipt to Share
             </button>
@@ -695,6 +762,23 @@ function formatPrice(value) {
   if (value === null || value === undefined) return '0.00'
   const num = typeof value === 'string' ? parseFloat(value) : value
   return isNaN(num) ? '0.00' : num.toFixed(2)
+}
+
+// Helper function to format cutoff time in GMT+2
+function formatCutoffTime(dateString) {
+  if (!dateString) return 'N/A'
+  const date = new Date(dateString)
+  // Convert UTC to GMT+2 (Egypt timezone)
+  const gmt2Date = new Date(date.getTime() + (2 * 60 * 60 * 1000))
+  return gmt2Date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'Africa/Cairo'
+  })
 }
 
 async function loadOrder() {
@@ -862,13 +946,13 @@ async function addMenuItem() {
     alert('This order is locked and cannot be modified')
     return
   }
-  
+
   // Check if user is trying to assign to someone else but doesn't have permission
   if (selectedItemUser.value && order.collector !== authStore.user?.id && !authStore.isManager) {
     alert('Only collectors and managers can assign items to other users')
     return
   }
-  
+
   const wasLoading = loading.value
   loading.value = true
   try {
@@ -877,12 +961,12 @@ async function addMenuItem() {
       menu_item: selectedMenuItem.value,
       quantity: itemQuantity.value,
     }
-    
+
     // Add user if specified and user has permission
     if (selectedItemUser.value && (order.collector === authStore.user?.id || authStore.isManager)) {
       itemData.user = selectedItemUser.value
     }
-    
+
     const result = await ordersStore.addOrderItem(itemData)
     
     if (result.success) {
@@ -918,13 +1002,13 @@ async function addCustomItem() {
     alert('This order is locked and cannot be modified')
     return
   }
-  
+
   // Check if user is trying to assign to someone else but doesn't have permission
   if (selectedItemUser.value && order.collector !== authStore.user?.id && !authStore.isManager) {
     alert('Only collectors and managers can assign items to other users')
     return
   }
-  
+
   const wasLoading = loading.value
   loading.value = true
   try {
@@ -934,12 +1018,12 @@ async function addCustomItem() {
       custom_price: customItemPrice.value,
       quantity: 1,
     }
-    
+
     // Add user if specified and user has permission
     if (selectedItemUser.value && (order.collector === authStore.user?.id || authStore.isManager)) {
       itemData.user = selectedItemUser.value
     }
-    
+
     const result = await ordersStore.addOrderItem(itemData)
     
     if (result.success) {
@@ -1067,6 +1151,26 @@ async function closeOrder() {
   }
 }
 
+async function unlockOrder() {
+  const order = currentOrder.value || ordersStore.currentOrder
+  if (!order) {
+    alert('Order not loaded')
+    return
+  }
+
+  if (!confirm('Unlock this order? Users will be able to add or remove items again. Payments will be cleared and recalculated on next lock.')) return
+
+  loading.value = true
+  const result = await ordersStore.unlockOrder(order.id)
+  if (result.success) {
+    await ordersStore.fetchOrderByCode(route.params.code.toUpperCase())
+    alert('Order unlocked successfully')
+  } else {
+    alert('Failed to unlock order: ' + (result.error?.detail || JSON.stringify(result.error)))
+  }
+  loading.value = false
+}
+
 async function deleteOrder() {
   const order = currentOrder.value || ordersStore.currentOrder
   if (!order) {
@@ -1074,32 +1178,51 @@ async function deleteOrder() {
     return
   }
   
-  if (order.status !== 'OPEN') {
+  // Managers can delete any order, collectors can only delete OPEN orders
+  if (order.status !== 'OPEN' && !authStore.isManager) {
     alert('Can only delete open orders')
     return
   }
   
-  if (!confirm('Are you sure you want to delete this order? This action cannot be undone.')) return
+  const statusText = order.status !== 'OPEN' ? ` (Status: ${order.status})` : ''
+  if (!confirm(`Are you sure you want to delete this order${statusText}? This action cannot be undone.`)) return
   
   loading.value = true
-  try {
-    await api.delete(`/orders/${order.id}/`)
+  const result = await ordersStore.deleteOrder(order.id)
+  if (result.success) {
     alert('Order deleted successfully')
     router.push('/orders')
-  } catch (error) {
-    alert('Failed to delete order: ' + (error.response?.data?.error || error.response?.data?.detail || error.message))
+  } else {
+    alert('Failed to delete order: ' + (result.error?.error || result.error?.detail || JSON.stringify(result.error)))
+    loading.value = false
   }
-  loading.value = false
 }
 
-function copyShareMessage() {
+async function copyShareMessage() {
   const order = currentOrder.value || ordersStore.currentOrder
   if (!order || !order.share_message) {
     alert('Share message not available')
     return
   }
-  navigator.clipboard.writeText(order.share_message)
-  alert('Share message copied to clipboard!')
+  try {
+    await navigator.clipboard.writeText(order.share_message)
+    alert('Share message copied to clipboard!')
+  } catch (error) {
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea')
+    textArea.value = order.share_message
+    textArea.style.position = 'fixed'
+    textArea.style.opacity = '0'
+    document.body.appendChild(textArea)
+    textArea.select()
+    try {
+      document.execCommand('copy')
+      alert('Share message copied to clipboard!')
+    } catch (err) {
+      alert('Failed to copy message. Please select and copy manually.')
+    }
+    document.body.removeChild(textArea)
+  }
 }
 
 async function markPaymentPaid(paymentId) {
@@ -1262,7 +1385,7 @@ function copyInstapayLink() {
   }
 }
 
-function copyReceipt() {
+async function copyReceipt() {
   const order = currentOrder.value || ordersStore.currentOrder
   if (!order) {
     alert('Order not loaded')
@@ -1285,8 +1408,25 @@ ${(order.payments || []).map(p => `  ${p.user_name}: ${formatPrice(p.amount)} EG
 
 ${order.instapay_link ? `Pay via Instapay: ${order.instapay_link}` : ''}`
   
-  navigator.clipboard.writeText(receipt)
-  alert('Receipt copied to clipboard! Share it in the group.')
+  try {
+    await navigator.clipboard.writeText(receipt)
+    alert('Receipt copied to clipboard! Share it in the group.')
+  } catch (error) {
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea')
+    textArea.value = receipt
+    textArea.style.position = 'fixed'
+    textArea.style.opacity = '0'
+    document.body.appendChild(textArea)
+    textArea.select()
+    try {
+      document.execCommand('copy')
+      alert('Receipt copied to clipboard! Share it in the group.')
+    } catch (err) {
+      alert('Failed to copy receipt. Please select and copy manually.')
+    }
+    document.body.removeChild(textArea)
+  }
 }
 </script>
 

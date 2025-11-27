@@ -180,6 +180,9 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
             order.is_private = True
             order.save()
         
+        # Note: Order can be created without items initially, but items should be added before locking
+        # This allows for flexibility in order creation workflow
+        
         AuditLog.objects.create(
             order=order,
             user=self.request.user,
@@ -270,8 +273,8 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Only allow deletion if order is OPEN
-        if order.status != 'OPEN':
+        # Collectors can only delete OPEN orders, managers can delete any order
+        if order.status != 'OPEN' and request.user.role != 'manager':
             return Response(
                 {'error': 'Can only delete open orders'}, 
                 status=status.HTTP_400_BAD_REQUEST
@@ -281,7 +284,7 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
             order=order,
             user=request.user,
             action='deleted',
-            details={'restaurant': order.restaurant.name, 'code': order.code}
+            details={'restaurant': order.restaurant.name, 'code': order.code, 'status': order.status}
         )
         
         return super().destroy(request, *args, **kwargs)
@@ -295,10 +298,17 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        if order.collector != request.user:
+        if order.collector != request.user and request.user.role != 'manager':
             return Response(
-                {'error': 'Only collector can lock order'}, 
+                {'error': 'Only collector or manager can lock order'}, 
                 status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Check if order has items before locking
+        if not order.items.exists():
+            return Response(
+                {'error': 'Cannot lock an order without items. Please add items first.'}, 
+                status=status.HTTP_400_BAD_REQUEST
             )
         
         order.status = 'LOCKED'
@@ -312,6 +322,38 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
             order=order,
             user=request.user,
             action='locked',
+            details={}
+        )
+        
+        return Response(CollectionOrderSerializer(order).data)
+    
+    @action(detail=True, methods=['post'])
+    def unlock(self, request, pk=None):
+        order = self.get_object()
+        if order.status != 'LOCKED':
+            return Response(
+                {'error': 'Order is not locked'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Collector or manager can unlock
+        if order.collector != request.user and request.user.role != 'manager':
+            return Response(
+                {'error': 'Only collector or manager can unlock order'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        order.status = 'OPEN'
+        order.locked_at = None
+        order.save()
+        
+        # Delete payments when unlocking (they'll be recalculated on next lock)
+        Payment.objects.filter(order=order).delete()
+        
+        AuditLog.objects.create(
+            order=order,
+            user=request.user,
+            action='unlocked',
             details={}
         )
         
@@ -466,6 +508,9 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
         
         result = []
         for payment in payments:
+            # Skip collector's payment if they are the collector (should be auto-paid)
+            if payment.user == payment.order.collector:
+                continue
             result.append({
                 'order_id': payment.order.id,
                 'order_code': payment.order.code,
@@ -535,11 +580,16 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
                 user_items_total = sum(
                     item.total_price for item in order.items.filter(user=user)
                 )
-                Payment.objects.create(
+                payment = Payment.objects.create(
                     order=order,
                     user=user,
                     amount=user_items_total
                 )
+                # Auto-mark collector's payment as paid
+                if user == order.collector:
+                    payment.is_paid = True
+                    payment.paid_at = timezone.now()
+                    payment.save()
         elif order.fee_split_rule == 'equal':
             # Split fees equally among participants
             fee_per_person = total_fees / len(participants) if participants else 0
@@ -547,11 +597,16 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
                 user_items_total = sum(
                     item.total_price for item in order.items.filter(user=user)
                 )
-                Payment.objects.create(
+                payment = Payment.objects.create(
                     order=order,
                     user=user,
                     amount=user_items_total + fee_per_person
                 )
+                # Auto-mark collector's payment as paid
+                if user == order.collector:
+                    payment.is_paid = True
+                    payment.paid_at = timezone.now()
+                    payment.save()
         elif order.fee_split_rule == 'proportional':
             # Split fees proportionally based on item cost
             for user in participants:
@@ -562,11 +617,16 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
                     user_fee_share = (user_items_total / total_items) * total_fees
                 else:
                     user_fee_share = 0
-                Payment.objects.create(
+                payment = Payment.objects.create(
                     order=order,
                     user=user,
                     amount=user_items_total + user_fee_share
                 )
+                # Auto-mark collector's payment as paid
+                if user == order.collector:
+                    payment.is_paid = True
+                    payment.paid_at = timezone.now()
+                    payment.save()
         # Custom split handled separately via API
 
 
