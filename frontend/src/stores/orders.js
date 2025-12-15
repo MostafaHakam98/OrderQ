@@ -207,6 +207,31 @@ export const useOrdersStore = defineStore('orders', () => {
     }
   }
 
+  async function addItemToMenu(itemId, menuId = null) {
+    try {
+      const data = menuId ? { menu_id: menuId } : {}
+      const response = await api.post(`/order-items/${itemId}/add_to_menu/`, data)
+      if (currentOrder.value) {
+        await fetchOrderByCode(currentOrder.value.code)
+      }
+      return { success: true, data: response.data }
+    } catch (error) {
+      return { success: false, error: error.response?.data }
+    }
+  }
+
+  async function updateMenuItemPrice(itemId, price) {
+    try {
+      const response = await api.post(`/order-items/${itemId}/update_menu_item_price/`, { price })
+      if (currentOrder.value) {
+        await fetchOrderByCode(currentOrder.value.code)
+      }
+      return { success: true, data: response.data }
+    } catch (error) {
+      return { success: false, error: error.response?.data }
+    }
+  }
+
   async function removeOrderItem(itemId) {
     try {
       await api.delete(`/order-items/${itemId}/`)
@@ -283,6 +308,8 @@ export const useOrdersStore = defineStore('orders', () => {
     fetchMenuItems,
     addOrderItem,
     removeOrderItem,
+    addItemToMenu,
+    updateMenuItemPrice,
     fetchFeePresets,
     getMonthlyReport,
   }

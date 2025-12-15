@@ -8,6 +8,7 @@ from .models import (
     User, Restaurant, Menu, MenuItem, CollectionOrder, 
     OrderItem, Payment, AuditLog, FeePreset, Recommendation
 )
+from .utils import format_item_name
 
 
 class OptionalUserField(serializers.PrimaryKeyRelatedField):
@@ -156,15 +157,22 @@ class OrderItemSerializer(serializers.ModelSerializer):
     custom_name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     custom_price = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
     user = OptionalUserField(queryset=User.objects.all())
+    # Response fields for prompts
+    suggest_add_to_menu = serializers.BooleanField(read_only=True)
+    suggest_update_price = serializers.BooleanField(read_only=True)
+    existing_menu_item_id = serializers.IntegerField(read_only=True, allow_null=True)
     
     class Meta:
         model = OrderItem
         fields = ['id', 'order', 'user', 'user_name', 'menu_item', 'custom_name', 
-                  'custom_price', 'quantity', 'unit_price', 'total_price', 'item_name', 'created_at']
-        read_only_fields = ['id', 'unit_price', 'total_price', 'created_at']
+                  'custom_price', 'quantity', 'unit_price', 'total_price', 'item_name', 'created_at',
+                  'suggest_add_to_menu', 'suggest_update_price', 'existing_menu_item_id']
+        read_only_fields = ['id', 'unit_price', 'total_price', 'created_at', 
+                           'suggest_add_to_menu', 'suggest_update_price', 'existing_menu_item_id']
         extra_kwargs = {
             'user': {'required': False, 'allow_null': True},
-            'custom_name': {'required': False, 'allow_blank': True, 'allow_null': True}
+            'custom_name': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'menu_item': {'required': False, 'allow_null': True}
         }
     
     def get_item_name(self, obj):
@@ -176,6 +184,10 @@ class OrderItemSerializer(serializers.ModelSerializer):
         if 'user' in fields:
             fields['user'].required = False
             fields['user'].allow_null = True
+        # Explicitly set menu_item field as not required
+        if 'menu_item' in fields:
+            fields['menu_item'].required = False
+            fields['menu_item'].allow_null = True
         return fields
     
     def __init__(self, *args, **kwargs):
@@ -184,6 +196,10 @@ class OrderItemSerializer(serializers.ModelSerializer):
         if 'user' in self.fields:
             self.fields['user'].required = False
             self.fields['user'].allow_null = True
+        # Explicitly set menu_item field as not required
+        if 'menu_item' in self.fields:
+            self.fields['menu_item'].required = False
+            self.fields['menu_item'].allow_null = True
     
     def to_internal_value(self, data):
         # Make data mutable if needed
@@ -198,6 +214,12 @@ class OrderItemSerializer(serializers.ModelSerializer):
         # The model doesn't allow null, only blank (empty string)
         if 'custom_name' not in data or data.get('custom_name') == '':
             data['custom_name'] = ''
+        
+        # Handle menu_item - if not provided, explicitly set to None
+        # This prevents DRF from treating it as required
+        if 'menu_item' not in data or data.get('menu_item') == '' or data.get('menu_item') is None:
+            # Explicitly set to None to avoid "required" validation errors
+            data['menu_item'] = None
         
         # For user, if not provided, don't include it in the data
         # It will be set in perform_create
@@ -226,7 +248,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
         # The model doesn't allow null, only blank (empty string)
         if value is None:
             return ''
-        return value
+        # Format the custom name to ensure proper capitalization and spacing
+        return format_item_name(value)
     
     def validate_user(self, value):
         # User is optional in the serializer (will be set in perform_create if not provided)
@@ -244,6 +267,10 @@ class OrderItemSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Cannot specify both menu_item and custom_name")
         if has_custom and not attrs.get('custom_price'):
             raise serializers.ValidationError("custom_price is required when using custom_name")
+        
+        # Format custom_name if provided
+        if has_custom and attrs.get('custom_name'):
+            attrs['custom_name'] = format_item_name(attrs['custom_name'])
         
         # If menu_item is provided, ensure custom_name is empty string
         # The model doesn't allow null, only blank (empty string)

@@ -698,6 +698,74 @@
         </div>
       </div>
     </div>
+
+    <!-- Add to Menu Prompt Modal -->
+    <div
+      v-if="showAddToMenuPrompt"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      @click="dismissAddToMenuPrompt"
+    >
+      <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4" @click.stop>
+        <h2 class="text-xl font-semibold mb-4 dark:text-white">Add Item to Menu?</h2>
+        <p class="text-gray-600 dark:text-gray-400 mb-4">
+          Would you like to add "<strong class="dark:text-white">{{ promptItemName }}</strong>" to the menu permanently?
+        </p>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Menu</label>
+          <select
+            v-model="selectedMenuForPrompt"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+          >
+            <option v-for="menu in availableMenus" :key="menu.id" :value="menu.id">
+              {{ menu.name }}
+            </option>
+          </select>
+        </div>
+        <div class="flex space-x-2">
+          <button
+            @click="handleAddToMenu"
+            class="flex-1 bg-blue-600 dark:bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-700 dark:hover:bg-blue-600"
+          >
+            Yes, Add to Menu
+          </button>
+          <button
+            @click="dismissAddToMenuPrompt"
+            class="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white px-4 py-2 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+          >
+            No, Keep as Custom
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Update Price Prompt Modal -->
+    <div
+      v-if="showUpdatePricePrompt"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      @click="dismissUpdatePricePrompt"
+    >
+      <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4" @click.stop>
+        <h2 class="text-xl font-semibold mb-4 dark:text-white">Update Menu Item Price?</h2>
+        <p class="text-gray-600 dark:text-gray-400 mb-4">
+          The price for "<strong class="dark:text-white">{{ promptItemName }}</strong>" is different from the menu price.
+          Would you like to update the menu item price to <strong class="dark:text-white">{{ formatPrice(promptItemPrice) }} EGP</strong>?
+        </p>
+        <div class="flex space-x-2">
+          <button
+            @click="handleUpdatePrice"
+            class="flex-1 bg-blue-600 dark:bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-700 dark:hover:bg-blue-600"
+          >
+            Yes, Update Price
+          </button>
+          <button
+            @click="dismissUpdatePricePrompt"
+            class="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white px-4 py-2 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+          >
+            No, Keep Current Price
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -736,6 +804,15 @@ const fees = ref({
   fee_split_rule: 'equal',
   instapay_link: '',
 })
+// Prompt states
+const showAddToMenuPrompt = ref(false)
+const showUpdatePricePrompt = ref(false)
+const promptItemId = ref(null)
+const promptItemName = ref('')
+const promptItemPrice = ref(0)
+const promptExistingMenuItemId = ref(null)
+const availableMenus = ref([])
+const selectedMenuForPrompt = ref(null)
 
 // Helper to get order from either computed or store directly
 const order = computed(() => {
@@ -1027,13 +1104,31 @@ async function addCustomItem() {
     const result = await ordersStore.addOrderItem(itemData)
     
     if (result.success) {
-      customItemName.value = ''
-      customItemPrice.value = 0
-      selectedItemUser.value = null // Reset to default (current user)
-      await ordersStore.fetchOrderByCode(route.params.code.toUpperCase())
-      // Regenerate QR code if needed
-      await nextTick()
-      generateInstapayQR()
+      const itemData = result.data
+      
+      // Check for prompts
+      if (itemData.suggest_add_to_menu) {
+        // Load menus for the restaurant
+        await loadMenusForRestaurant(order.restaurant)
+        promptItemId.value = itemData.id
+        promptItemName.value = itemData.custom_name || itemData.item_name
+        promptItemPrice.value = itemData.custom_price || itemData.unit_price
+        showAddToMenuPrompt.value = true
+      } else if (itemData.suggest_update_price) {
+        promptItemId.value = itemData.id
+        promptItemName.value = itemData.item_name
+        promptItemPrice.value = itemData.custom_price || itemData.unit_price
+        promptExistingMenuItemId.value = itemData.existing_menu_item_id
+        showUpdatePricePrompt.value = true
+      } else {
+        // No prompts, just reset and refresh
+        customItemName.value = ''
+        customItemPrice.value = 0
+        selectedItemUser.value = null
+        await ordersStore.fetchOrderByCode(route.params.code.toUpperCase())
+        await nextTick()
+        generateInstapayQR()
+      }
     } else {
       const errorMsg = result.error?.detail || result.error?.error || JSON.stringify(result.error)
       alert('Failed to add custom item: ' + errorMsg)
@@ -1041,6 +1136,88 @@ async function addCustomItem() {
   } finally {
     loading.value = wasLoading
   }
+}
+
+async function loadMenusForRestaurant(restaurantId) {
+  try {
+    const result = await ordersStore.fetchMenus(restaurantId)
+    if (result.success) {
+      availableMenus.value = result.data || []
+      // Pre-select order's menu if available
+      const order = currentOrder.value || ordersStore.currentOrder
+      if (order?.menu) {
+        selectedMenuForPrompt.value = order.menu
+      } else if (availableMenus.value.length > 0) {
+        selectedMenuForPrompt.value = availableMenus.value[0].id
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load menus:', error)
+  }
+}
+
+async function handleAddToMenu() {
+  if (!promptItemId.value) return
+  
+  const wasLoading = loading.value
+  loading.value = true
+  try {
+    const result = await ordersStore.addItemToMenu(promptItemId.value, selectedMenuForPrompt.value)
+    
+    if (result.success) {
+      showAddToMenuPrompt.value = false
+      customItemName.value = ''
+      customItemPrice.value = 0
+      selectedItemUser.value = null
+      await ordersStore.fetchOrderByCode(route.params.code.toUpperCase())
+      await nextTick()
+      generateInstapayQR()
+      alert('Item added to menu successfully!')
+    } else {
+      const errorMsg = result.error?.detail || result.error?.error || JSON.stringify(result.error)
+      alert('Failed to add item to menu: ' + errorMsg)
+    }
+  } finally {
+    loading.value = wasLoading
+  }
+}
+
+async function handleUpdatePrice() {
+  if (!promptItemId.value || !promptItemPrice.value) return
+  
+  const wasLoading = loading.value
+  loading.value = true
+  try {
+    const result = await ordersStore.updateMenuItemPrice(promptItemId.value, promptItemPrice.value)
+    
+    if (result.success) {
+      showUpdatePricePrompt.value = false
+      await ordersStore.fetchOrderByCode(route.params.code.toUpperCase())
+      await nextTick()
+      generateInstapayQR()
+      alert('Menu item price updated successfully!')
+    } else {
+      const errorMsg = result.error?.detail || result.error?.error || JSON.stringify(result.error)
+      alert('Failed to update price: ' + errorMsg)
+    }
+  } finally {
+    loading.value = wasLoading
+  }
+}
+
+function dismissAddToMenuPrompt() {
+  showAddToMenuPrompt.value = false
+  customItemName.value = ''
+  customItemPrice.value = 0
+  selectedItemUser.value = null
+  ordersStore.fetchOrderByCode(route.params.code.toUpperCase())
+  nextTick().then(() => generateInstapayQR())
+}
+
+function dismissUpdatePricePrompt() {
+  showUpdatePricePrompt.value = false
+  ordersStore.fetchOrderByCode(route.params.code.toUpperCase())
+  nextTick().then(() => generateInstapayQR())
 }
 
 async function removeItem(itemId) {

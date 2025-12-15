@@ -6,6 +6,7 @@ from rest_framework.exceptions import ValidationError
 from django.db.models import Q, Sum, Count
 from django.utils import timezone
 from django.db import transaction, IntegrityError
+from decimal import Decimal
 from .models import (
     User, Restaurant, Menu, MenuItem, CollectionOrder, 
     OrderItem, Payment, AuditLog, FeePreset, Recommendation
@@ -16,6 +17,7 @@ from .serializers import (
     OrderItemSerializer, PaymentSerializer, AuditLogSerializer, FeePresetSerializer,
     RecommendationSerializer
 )
+from .utils import format_item_name
 from rest_framework_simplejwt.tokens import RefreshToken
 
 
@@ -654,7 +656,11 @@ class OrderItemViewSet(viewsets.ModelViewSet):
         
         return queryset
     
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
+        """Override create to add prompts for menu addition and price updates"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
         order = serializer.validated_data['order']
         
         # Check if order is open
@@ -663,7 +669,7 @@ class OrderItemViewSet(viewsets.ModelViewSet):
         
         # Check if order has assigned users - if so, only they can add items
         if order.assigned_users.exists():
-            if self.request.user not in order.assigned_users.all() and self.request.user.role != 'manager' and order.collector != self.request.user:
+            if request.user not in order.assigned_users.all() and request.user.role != 'manager' and order.collector != request.user:
                 raise ValidationError("You are not assigned to this order")
         
         # Set unit price
@@ -676,11 +682,35 @@ class OrderItemViewSet(viewsets.ModelViewSet):
         # If user is provided, only allow if requester is collector or manager
         assigned_user = serializer.validated_data.get('user')
         if assigned_user:
-            if order.collector != self.request.user and self.request.user.role != 'manager':
+            if order.collector != request.user and request.user.role != 'manager':
                 raise ValidationError("Only the collector or manager can assign items to other users")
             user_to_assign = assigned_user
         else:
-            user_to_assign = self.request.user
+            user_to_assign = request.user
+        
+        # Check for existing menu items if this is a custom item
+        suggest_add_to_menu = False
+        suggest_update_price = False
+        existing_menu_item_id = None
+        
+        if serializer.validated_data.get('custom_name'):
+            custom_name = serializer.validated_data['custom_name']
+            custom_price = serializer.validated_data.get('custom_price')
+            
+            # Check if a menu item with the same name exists in any menu for this restaurant
+            existing_menu_item = MenuItem.objects.filter(
+                menu__restaurant=order.restaurant,
+                name__iexact=custom_name
+            ).first()
+            
+            if existing_menu_item:
+                # Item exists, suggest price update if price is different
+                existing_menu_item_id = existing_menu_item.id
+                if custom_price and existing_menu_item.price != custom_price:
+                    suggest_update_price = True
+            else:
+                # Item doesn't exist, suggest adding to menu
+                suggest_add_to_menu = True
         
         try:
             item = serializer.save(user=user_to_assign)
@@ -697,7 +727,7 @@ class OrderItemViewSet(viewsets.ModelViewSet):
         
         AuditLog.objects.create(
             order=order,
-            user=self.request.user,
+            user=request.user,
             action='item_added',
             details={
                 'item_name': item.menu_item.name if item.menu_item else item.custom_name,
@@ -705,6 +735,72 @@ class OrderItemViewSet(viewsets.ModelViewSet):
                 'price': float(item.total_price)
             }
         )
+        
+        # Prepare response with prompts
+        response_serializer = self.get_serializer(item)
+        response_data = response_serializer.data
+        response_data['suggest_add_to_menu'] = suggest_add_to_menu
+        response_data['suggest_update_price'] = suggest_update_price
+        response_data['existing_menu_item_id'] = existing_menu_item_id
+        
+        headers = self.get_success_headers(response_data)
+        return Response(response_data, status=status.HTTP_201_CREATED, headers=headers)
+    
+    def perform_create(self, serializer):
+        # This method is no longer used, but kept for compatibility
+        # The create method above handles everything
+        pass
+    
+    def update(self, request, *args, **kwargs):
+        """Override update to handle price changes and prompts"""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        
+        order = instance.order
+        
+        # Check if order is open
+        if order.status != 'OPEN':
+            raise ValidationError("Cannot update items in a locked/closed order")
+        
+        # Check for price updates if this is a menu item
+        suggest_update_price = False
+        existing_menu_item_id = None
+        
+        if instance.menu_item and 'custom_price' in serializer.validated_data:
+            # User is changing price of a menu item
+            new_price = serializer.validated_data.get('custom_price')
+            if new_price and instance.menu_item.price != new_price:
+                suggest_update_price = True
+                existing_menu_item_id = instance.menu_item.id
+        
+        # Format custom_name if it's being updated
+        if 'custom_name' in serializer.validated_data and serializer.validated_data.get('custom_name'):
+            serializer.validated_data['custom_name'] = format_item_name(serializer.validated_data['custom_name'])
+        
+        # Update unit price if custom_price is provided
+        if serializer.validated_data.get('custom_price'):
+            serializer.validated_data['unit_price'] = serializer.validated_data['custom_price']
+        elif serializer.validated_data.get('menu_item'):
+            serializer.validated_data['unit_price'] = serializer.validated_data['menu_item'].price
+        
+        self.perform_update(serializer)
+        
+        # Refresh instance from database to get updated values
+        instance.refresh_from_db()
+        
+        # Prepare response with prompts
+        response_serializer = self.get_serializer(instance)
+        response_data = response_serializer.data
+        response_data['suggest_update_price'] = suggest_update_price
+        response_data['existing_menu_item_id'] = existing_menu_item_id
+        response_data['suggest_add_to_menu'] = False
+        
+        return Response(response_data)
+    
+    def perform_update(self, serializer):
+        serializer.save()
     
     def perform_destroy(self, instance):
         order = instance.order
@@ -724,6 +820,134 @@ class OrderItemViewSet(viewsets.ModelViewSet):
         )
         
         instance.delete()
+    
+    @action(detail=True, methods=['post'])
+    def add_to_menu(self, request, pk=None):
+        """Add a custom item to the menu permanently"""
+        item = self.get_object()
+        
+        if not item.custom_name:
+            return Response(
+                {'error': 'This item is already a menu item'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        order = item.order
+        menu_id = request.data.get('menu_id')
+        
+        # If menu_id is provided, use it; otherwise use order's menu or first active menu
+        if menu_id:
+            try:
+                menu = Menu.objects.get(id=menu_id, restaurant=order.restaurant)
+            except Menu.DoesNotExist:
+                return Response(
+                    {'error': 'Menu not found'}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        elif order.menu:
+            menu = order.menu
+        else:
+            # Get first active menu for the restaurant
+            menu = Menu.objects.filter(restaurant=order.restaurant, is_active=True).first()
+            if not menu:
+                return Response(
+                    {'error': 'No active menu found for this restaurant'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Check if item already exists in menu
+        existing_item = MenuItem.objects.filter(
+            menu=menu,
+            name__iexact=item.custom_name
+        ).first()
+        
+        if existing_item:
+            # Update existing item price
+            existing_item.price = item.custom_price
+            existing_item.save()
+            menu_item = existing_item
+        else:
+            # Create new menu item
+            menu_item = MenuItem.objects.create(
+                menu=menu,
+                name=item.custom_name,
+                price=item.custom_price,
+                description='',
+                is_available=True
+            )
+        
+        # Update the order item to use the menu item
+        item.menu_item = menu_item
+        item.custom_name = ''
+        item.custom_price = None
+        item.unit_price = menu_item.price
+        item.save()
+        
+        AuditLog.objects.create(
+            order=order,
+            user=request.user,
+            action='item_added',
+            details={
+                'action': 'added_to_menu',
+                'item_name': menu_item.name,
+                'menu_id': menu.id,
+                'menu_name': menu.name
+            }
+        )
+        
+        serializer = self.get_serializer(item)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def update_menu_item_price(self, request, pk=None):
+        """Update the price of a menu item"""
+        item = self.get_object()
+        
+        if not item.menu_item:
+            return Response(
+                {'error': 'This item is not a menu item'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        new_price = request.data.get('price')
+        if not new_price:
+            return Response(
+                {'error': 'Price is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            new_price = Decimal(str(new_price))
+        except (ValueError, TypeError):
+            return Response(
+                {'error': 'Invalid price format'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Update menu item price
+        menu_item = item.menu_item
+        old_price = menu_item.price
+        menu_item.price = new_price
+        menu_item.save()
+        
+        # Update order item unit price
+        item.unit_price = new_price
+        item.save()
+        
+        AuditLog.objects.create(
+            order=item.order,
+            user=request.user,
+            action='fee_updated',
+            details={
+                'action': 'menu_item_price_updated',
+                'item_name': menu_item.name,
+                'old_price': float(old_price),
+                'new_price': float(new_price)
+            }
+        )
+        
+        serializer = self.get_serializer(item)
+        return Response(serializer.data)
 
 
 class PaymentViewSet(viewsets.ModelViewSet):
