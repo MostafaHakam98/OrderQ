@@ -25,7 +25,7 @@ if not scripts_dir.exists():
     raise ImportError(f"Scripts directory not found at {scripts_dir}. Make sure scripts/talabat_scrap.py exists.")
 
 if str(scripts_dir) not in sys.path:
-sys.path.insert(0, str(scripts_dir))
+    sys.path.insert(0, str(scripts_dir))
 
 try:
     from talabat_scrap import (
