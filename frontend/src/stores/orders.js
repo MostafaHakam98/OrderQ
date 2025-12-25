@@ -162,6 +162,30 @@ export const useOrdersStore = defineStore('orders', () => {
     }
   }
 
+  async function addRestaurantFromTalabat(talabatUrl, syncNow = false) {
+    try {
+      const response = await api.post('/restaurants/add_from_talabat/', {
+        talabat_url: talabatUrl,
+        sync_now: syncNow
+      })
+      restaurants.value.push(response.data.restaurant)
+      return { success: true, data: response.data }
+    } catch (error) {
+      return { success: false, error: error.response?.data }
+    }
+  }
+
+  async function syncRestaurantMenu(restaurantId) {
+    try {
+      const response = await api.post(`/restaurants/${restaurantId}/sync_menu/`)
+      // Refresh restaurants to get updated menu info
+      await fetchRestaurants()
+      return { success: true, data: response.data }
+    } catch (error) {
+      return { success: false, error: error.response?.data }
+    }
+  }
+
   async function updateRestaurant(restaurantId, restaurantData) {
     try {
       const response = await api.patch(`/restaurants/${restaurantId}/`, restaurantData)
@@ -293,6 +317,8 @@ export const useOrdersStore = defineStore('orders', () => {
     feePresets,
     fetchOrders,
     fetchOrderByCode,
+    addRestaurantFromTalabat,
+    syncRestaurantMenu,
     createOrder,
     fetchUsers,
     lockOrder,

@@ -770,10 +770,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useOrdersStore } from '../stores/orders'
 import { useAuthStore } from '../stores/auth'
+import { useWebSocketStore } from '../stores/websocket'
 import api from '../api'
 import QRCode from 'qrcode'
 
@@ -781,6 +782,7 @@ const route = useRoute()
 const router = useRouter()
 const ordersStore = useOrdersStore()
 const authStore = useAuthStore()
+const wsStore = useWebSocketStore()
 
 const loading = ref(true)
 const error = ref(null)
@@ -948,6 +950,32 @@ async function loadOrder() {
       if (ordersStore.currentOrder.assigned_users_details) {
         selectedUsers.value = ordersStore.currentOrder.assigned_users_details.map(u => u.id)
       }
+      
+      // Connect to WebSocket for real-time updates
+      wsStore.connect(ordersStore.currentOrder.id, (updatedOrder) => {
+        console.log('Received order update via WebSocket:', updatedOrder)
+        // Update the order in the store
+        ordersStore.currentOrder = updatedOrder
+        currentOrder.value = updatedOrder
+        
+        // Update fees if they changed
+        if (updatedOrder.delivery_fee !== undefined) {
+          fees.value = {
+            delivery_fee: parseFloat(updatedOrder.delivery_fee) || 0,
+            tip: parseFloat(updatedOrder.tip) || 0,
+            service_fee: parseFloat(updatedOrder.service_fee) || 0,
+            fee_split_rule: updatedOrder.fee_split_rule || 'equal',
+            instapay_link: updatedOrder.instapay_link || '',
+          }
+        }
+        
+        // Regenerate QR code if instapay link changed
+        if (updatedOrder.collector_instapay_link) {
+          nextTick(() => {
+            generateInstapayQR()
+          })
+        }
+      })
     }
   } catch (err) {
     console.error('Failed to load order:', err)
@@ -1005,6 +1033,11 @@ watch(() => currentOrder.value?.collector_instapay_link, () => {
   nextTick(() => {
     generateInstapayQR()
   })
+})
+
+// Disconnect WebSocket when component unmounts
+onUnmounted(() => {
+  wsStore.disconnect()
 })
 
 async function addMenuItem() {

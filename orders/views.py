@@ -18,6 +18,7 @@ from .serializers import (
     RecommendationSerializer
 )
 from .utils import format_item_name
+from .websocket_utils import broadcast_order_update
 from rest_framework_simplejwt.tokens import RefreshToken
 
 
@@ -33,10 +34,11 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None  # Disable pagination for users - needed for assignment feature
     
     def get_queryset(self):
         # All authenticated users can see all users (needed for assignment feature)
-        return User.objects.all()
+        return User.objects.all().order_by('username')  # Order by username for better UX
     
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -105,6 +107,192 @@ class RestaurantViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
+    @action(detail=False, methods=['post'])
+    def add_from_talabat(self, request):
+        """
+        Add a restaurant from Talabat URL.
+        Accepts: { "talabat_url": "...", "sync_now": true/false }
+        """
+        if request.user.role != 'manager':
+            return Response(
+                {'error': 'Only managers can add restaurants from Talabat'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        talabat_url = request.data.get('talabat_url')
+        sync_now = request.data.get('sync_now', False)
+        
+        if not talabat_url:
+            return Response(
+                {'error': 'talabat_url is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate URL format
+        if not talabat_url.startswith('https://www.talabat.com/'):
+            return Response(
+                {'error': 'Invalid Talabat URL. Must start with https://www.talabat.com/'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Parse URL to extract restaurant name
+        import sys
+        from django.conf import settings
+        
+        # Use Django's BASE_DIR for reliable path resolution
+        scripts_dir = settings.BASE_DIR / 'scripts'
+        if scripts_dir.exists() and str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+        
+        try:
+            from talabat_scrap import parse_url_parts
+            url_info = parse_url_parts(talabat_url)
+            branch_slug = url_info.get('branch_slug', 'restaurant')
+            # Use branch_slug as restaurant name (capitalize it)
+            restaurant_name = branch_slug.replace('-', ' ').title()
+        except Exception as e:
+            # Fallback to generic name
+            restaurant_name = 'Talabat Restaurant'
+        
+        # Check if restaurant with this URL already exists
+        existing_menu = Menu.objects.filter(talabat_url=talabat_url).first()
+        if existing_menu:
+            return Response(
+                {
+                    'error': 'Restaurant with this Talabat URL already exists',
+                    'restaurant': RestaurantSerializer(existing_menu.restaurant).data,
+                    'menu': MenuSerializer(existing_menu).data
+                }, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Create restaurant and menu
+        try:
+            with transaction.atomic():
+                restaurant = Restaurant.objects.create(
+                    name=restaurant_name,
+                    description=f'Auto-added from Talabat',
+                    created_by=request.user
+                )
+                
+                menu = Menu.objects.create(
+                    restaurant=restaurant,
+                    name='Main Menu',
+                    is_active=True,
+                    talabat_url=talabat_url
+                )
+                
+                # If sync_now is True, trigger immediate sync
+                if sync_now:
+                    try:
+                        # Import sync function
+                        from django.core.management import call_command
+                        from io import StringIO
+                        import sys
+                        
+                        # Capture output
+                        old_stdout = sys.stdout
+                        sys.stdout = StringIO()
+                        
+                        try:
+                            call_command(
+                                'sync_talabat_menus',
+                                talabat_url=talabat_url,
+                                manager=request.user.username,
+                                verbosity=1  # Use verbosity=1 to see debug output
+                            )
+                        finally:
+                            output = sys.stdout.getvalue()
+                            sys.stdout = old_stdout
+                        
+                        # Refresh menu to get updated data
+                        menu.refresh_from_db()
+                        
+                    except Exception as sync_error:
+                        # If sync fails, still return the restaurant/menu but with a warning
+                        return Response(
+                            {
+                                'restaurant': RestaurantSerializer(restaurant).data,
+                                'menu': MenuSerializer(menu).data,
+                                'warning': f'Restaurant created but menu sync failed: {str(sync_error)}',
+                                'sync_error': str(sync_error)
+                            },
+                            status=status.HTTP_201_CREATED
+                        )
+                
+                return Response(
+                    {
+                        'restaurant': RestaurantSerializer(restaurant).data,
+                        'menu': MenuSerializer(menu).data,
+                        'message': 'Restaurant added successfully' + (' and menu synced' if sync_now else '. Use sync endpoint to sync menu.')
+                    },
+                    status=status.HTTP_201_CREATED
+                )
+                
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to create restaurant: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=True, methods=['post'])
+    def sync_menu(self, request, pk=None):
+        """
+        Sync menu for a restaurant from Talabat.
+        """
+        if request.user.role != 'manager':
+            return Response(
+                {'error': 'Only managers can sync menus'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        restaurant = self.get_object()
+        menu = restaurant.menus.filter(talabat_url__isnull=False).first()
+        
+        if not menu or not menu.talabat_url:
+            return Response(
+                {'error': 'No Talabat URL found for this restaurant'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            from django.core.management import call_command
+            from io import StringIO
+            import sys
+            
+            # Capture output
+            old_stdout = sys.stdout
+            sys.stdout = StringIO()
+            
+            try:
+                call_command(
+                    'sync_talabat_menus',
+                    restaurant=restaurant.name,
+                    manager=request.user.username,
+                    verbosity=0
+                )
+            finally:
+                output = sys.stdout.getvalue()
+                sys.stdout = old_stdout
+            
+            # Refresh menu to get updated data
+            menu.refresh_from_db()
+            
+            return Response(
+                {
+                    'menu': MenuSerializer(menu).data,
+                    'message': 'Menu synced successfully',
+                    'items_count': menu.items.count()
+                },
+                status=status.HTTP_200_OK
+            )
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to sync menu: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
 class MenuViewSet(viewsets.ModelViewSet):
     queryset = Menu.objects.all()
@@ -125,6 +313,7 @@ class MenuItemViewSet(viewsets.ModelViewSet):
     queryset = MenuItem.objects.all()
     serializer_class = MenuItemSerializer
     permission_classes = [IsManagerOrReadOnly]
+    pagination_class = None  # Disable pagination for menu items - show all items
     
     def get_queryset(self):
         menu_id = self.request.query_params.get('menu')
@@ -136,7 +325,7 @@ class MenuItemViewSet(viewsets.ModelViewSet):
         elif restaurant_id:
             queryset = queryset.filter(menu__restaurant_id=restaurant_id)
         
-        return queryset
+        return queryset.order_by('section_name', 'name')  # Order by section and name for better UX
     
     def perform_create(self, serializer):
         serializer.save()
@@ -262,7 +451,13 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
             instance.save()
             # Return updated data with assigned_users
             serializer = self.get_serializer(instance, context={'request': request})
+            # Broadcast order update via WebSocket
+            broadcast_order_update(instance)
             return Response(serializer.data)
+        
+        # Broadcast order update via WebSocket (for fee updates, etc.)
+        instance.refresh_from_db()
+        broadcast_order_update(instance)
         
         return response
     
@@ -327,6 +522,9 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
             details={}
         )
         
+        # Broadcast order update via WebSocket
+        broadcast_order_update(order)
+        
         return Response(CollectionOrderSerializer(order).data)
     
     @action(detail=True, methods=['post'])
@@ -359,6 +557,9 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
             details={}
         )
         
+        # Broadcast order update via WebSocket
+        broadcast_order_update(order)
+        
         return Response(CollectionOrderSerializer(order).data)
     
     @action(detail=True, methods=['post'])
@@ -387,6 +588,9 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
             details={}
         )
         
+        # Broadcast order update via WebSocket
+        broadcast_order_update(order)
+        
         return Response(CollectionOrderSerializer(order).data)
     
     @action(detail=True, methods=['post'])
@@ -414,6 +618,9 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
             action='closed',
             details={}
         )
+        
+        # Broadcast order update via WebSocket
+        broadcast_order_update(order)
         
         return Response(CollectionOrderSerializer(order).data)
     
@@ -736,6 +943,10 @@ class OrderItemViewSet(viewsets.ModelViewSet):
             }
         )
         
+        # Broadcast order update via WebSocket
+        order.refresh_from_db()
+        broadcast_order_update(order)
+        
         # Prepare response with prompts
         response_serializer = self.get_serializer(item)
         response_data = response_serializer.data
@@ -790,6 +1001,10 @@ class OrderItemViewSet(viewsets.ModelViewSet):
         # Refresh instance from database to get updated values
         instance.refresh_from_db()
         
+        # Broadcast order update via WebSocket
+        order.refresh_from_db()
+        broadcast_order_update(order)
+        
         # Prepare response with prompts
         response_serializer = self.get_serializer(instance)
         response_data = response_serializer.data
@@ -820,6 +1035,10 @@ class OrderItemViewSet(viewsets.ModelViewSet):
         )
         
         instance.delete()
+        
+        # Broadcast order update via WebSocket
+        order.refresh_from_db()
+        broadcast_order_update(order)
     
     @action(detail=True, methods=['post'])
     def add_to_menu(self, request, pk=None):
@@ -988,6 +1207,9 @@ class PaymentViewSet(viewsets.ModelViewSet):
         payment.is_paid = True
         payment.paid_at = timezone.now()
         payment.save()
+        
+        # Broadcast order update via WebSocket
+        broadcast_order_update(payment.order)
         
         return Response(PaymentSerializer(payment).data)
 

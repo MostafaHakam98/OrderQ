@@ -106,4 +106,3 @@ flutter run -d <device-id>
 2. Create a test order
 3. Verify all features work correctly
 4. Customize UI/theme as needed
-

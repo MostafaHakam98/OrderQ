@@ -42,6 +42,11 @@ class Menu(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
+    # Sync metadata for Talabat scraping
+    talabat_url = models.URLField(max_length=500, blank=True, null=True, help_text="Talabat URL for this menu")
+    menu_hash = models.CharField(max_length=64, blank=True, null=True, help_text="SHA256 hash of menu items for change detection")
+    last_synced_at = models.DateTimeField(null=True, blank=True, help_text="Last time menu was synced from Talabat")
+    
     class Meta:
         ordering = ['-created_at']
     
@@ -58,8 +63,16 @@ class MenuItem(models.Model):
     is_available = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
+    # Sync metadata for Talabat scraping
+    talabat_id = models.BigIntegerField(null=True, blank=True, help_text="Original Talabat item ID")
+    item_hash = models.CharField(max_length=64, blank=True, null=True, db_index=True, help_text="SHA256 hash for change detection")
+    section_name = models.CharField(max_length=200, blank=True, help_text="Section/category name from Talabat")
+    
     class Meta:
         ordering = ['name']
+        indexes = [
+            models.Index(fields=['item_hash']),
+        ]
     
     def __str__(self):
         return f"{self.menu.restaurant.name} - {self.name}"

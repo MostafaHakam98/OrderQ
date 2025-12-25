@@ -123,6 +123,22 @@ class RestaurantSerializer(serializers.ModelSerializer):
         model = Restaurant
         fields = ['id', 'name', 'description', 'created_by', 'created_by_name', 'created_at']
         read_only_fields = ['id', 'created_by', 'created_at']
+    
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Include menus with Talabat info
+        menus = instance.menus.all()
+        representation['menus'] = [
+            {
+                'id': menu.id,
+                'name': menu.name,
+                'is_active': menu.is_active,
+                'talabat_url': menu.talabat_url,
+                'last_synced_at': menu.last_synced_at.isoformat() if menu.last_synced_at else None,
+            }
+            for menu in menus
+        ]
+        return representation
 
 
 class MenuSerializer(serializers.ModelSerializer):
@@ -130,7 +146,7 @@ class MenuSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Menu
-        fields = ['id', 'restaurant', 'restaurant_name', 'name', 'is_active', 'created_at']
+        fields = ['id', 'restaurant', 'restaurant_name', 'name', 'is_active', 'talabat_url', 'menu_hash', 'last_synced_at', 'created_at']
         read_only_fields = ['id', 'created_at']
 
 
