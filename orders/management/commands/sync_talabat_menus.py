@@ -25,7 +25,7 @@ if not scripts_dir.exists():
     raise ImportError(f"Scripts directory not found at {scripts_dir}. Make sure scripts/talabat_scrap.py exists.")
 
 if str(scripts_dir) not in sys.path:
-    sys.path.insert(0, str(scripts_dir))
+sys.path.insert(0, str(scripts_dir))
 
 try:
     from talabat_scrap import (
@@ -47,8 +47,8 @@ class Command(BaseCommand):
         parser.add_argument(
             '--file',
             type=str,
-            default='restaurants_to_sync.json',
-            help='Path to restaurants_to_sync.json file',
+            default=None,
+            help='Path to restaurants_to_sync.json file (required if --talabat-url is not provided)',
         )
         parser.add_argument(
             '--manager',
@@ -127,7 +127,12 @@ class Command(BaseCommand):
             return
         
         # Otherwise, sync from JSON file
-        file_path = Path(options['file'])
+        file_path = options.get('file')
+        if not file_path:
+            self.stdout.write(self.style.ERROR('Either --file or --talabat-url must be provided'))
+            return
+        
+        file_path = Path(file_path)
         
         if not file_path.exists():
             self.stdout.write(self.style.ERROR(f'File not found: {file_path}'))

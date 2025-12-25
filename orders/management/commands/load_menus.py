@@ -14,7 +14,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--file',
             type=str,
-            default='menu_config.json',
+            required=True,
             help='Path to JSON configuration file',
         )
         parser.add_argument(

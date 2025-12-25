@@ -382,20 +382,30 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
         )
     
     def update(self, request, *args, **kwargs):
-        """Allow updating assigned_users for open orders"""
+        """Allow updating fees and assigned_users for open orders"""
         instance = self.get_object()
-        if instance.status != 'OPEN':
-            return Response(
-                {'error': 'Can only update assigned users for open orders'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
         
         # Handle assigned_users separately - many-to-many fields need special handling
         assigned_users_data = request.data.get('assigned_users')
         assignment_items = request.data.get('assignment_items')
         assignment_total_cost = request.data.get('assignment_total_cost')
         
-        # Call parent update first (this handles other fields)
+        # Only check status for assigned_users updates, not for fee updates
+        if assigned_users_data is not None and instance.status != 'OPEN':
+            return Response(
+                {'error': 'Can only update assigned users for open orders'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if this is a fee update - fees can only be updated when order is OPEN
+        has_fee_update = any(key in request.data for key in ['delivery_fee', 'tip', 'service_fee', 'fee_split_rule'])
+        if has_fee_update and instance.status != 'OPEN':
+            return Response(
+                {'error': 'Fees can only be updated when order is open'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Call parent update first (this handles other fields including fees)
         response = super().update(request, *args, **kwargs)
         
         # Now handle assigned_users if provided

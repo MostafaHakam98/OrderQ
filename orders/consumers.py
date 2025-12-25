@@ -92,12 +92,14 @@ class OrderConsumer(AsyncWebsocketConsumer):
     def get_order_data(self, order_id):
         """Get serialized order data"""
         try:
+            from django.db.models import Prefetch
+            from .models import OrderItem, Payment
+            
             order = CollectionOrder.objects.prefetch_related(
-                'items__user',
-                'items__menu_item',
-                'payments__user',
+                Prefetch('items', queryset=OrderItem.objects.select_related('user', 'menu_item').order_by('-created_at')),
+                Prefetch('payments', queryset=Payment.objects.select_related('user').order_by('-created_at')),
                 'assigned_users'
-            ).get(id=order_id)
+            ).select_related('restaurant', 'menu', 'collector').get(id=order_id)
             serializer = CollectionOrderSerializer(order)
             return serializer.data
         except CollectionOrder.DoesNotExist:

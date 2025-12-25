@@ -954,8 +954,12 @@ async function loadOrder() {
       // Connect to WebSocket for real-time updates
       wsStore.connect(ordersStore.currentOrder.id, (updatedOrder) => {
         console.log('Received order update via WebSocket:', updatedOrder)
-        // Update the order in the store
+        console.log('Items in update:', updatedOrder.items?.length || 0)
+        
+        // Update the order in the store - replace entire object to trigger reactivity
         ordersStore.currentOrder = updatedOrder
+        
+        // Update currentOrder ref - replace to trigger Vue reactivity
         currentOrder.value = updatedOrder
         
         // Update fees if they changed
@@ -1083,7 +1087,8 @@ async function addMenuItem() {
       selectedMenuItem.value = ''
       itemQuantity.value = 1
       selectedItemUser.value = null // Reset to default (current user)
-      await ordersStore.fetchOrderByCode(route.params.code.toUpperCase())
+      // Don't manually refetch - WebSocket will broadcast the update automatically
+      // await ordersStore.fetchOrderByCode(route.params.code.toUpperCase())
       // Regenerate QR code if needed
       await nextTick()
       generateInstapayQR()
@@ -1154,11 +1159,12 @@ async function addCustomItem() {
         promptExistingMenuItemId.value = itemData.existing_menu_item_id
         showUpdatePricePrompt.value = true
       } else {
-        // No prompts, just reset and refresh
+        // No prompts, just reset
         customItemName.value = ''
         customItemPrice.value = 0
         selectedItemUser.value = null
-        await ordersStore.fetchOrderByCode(route.params.code.toUpperCase())
+        // Don't manually refetch - WebSocket will broadcast the update automatically
+        // await ordersStore.fetchOrderByCode(route.params.code.toUpperCase())
         await nextTick()
         generateInstapayQR()
       }
@@ -1271,7 +1277,8 @@ async function removeItem(itemId) {
   const result = await ordersStore.removeOrderItem(itemId)
   
   if (result.success) {
-    await ordersStore.fetchOrderByCode(route.params.code.toUpperCase())
+    // Don't manually refetch - WebSocket will broadcast the update automatically
+    // await ordersStore.fetchOrderByCode(route.params.code.toUpperCase())
   } else {
     alert('Failed to remove item')
   }
@@ -1293,7 +1300,8 @@ async function updateFees() {
   loading.value = true
   try {
     await api.patch(`/orders/${order.id}/`, fees.value)
-    await ordersStore.fetchOrderByCode(route.params.code.toUpperCase())
+    // Don't manually refetch - WebSocket will broadcast the update automatically
+    // await ordersStore.fetchOrderByCode(route.params.code.toUpperCase())
     alert('Fees updated successfully')
   } catch (error) {
     alert('Failed to update fees: ' + (error.response?.data?.detail || error.message))

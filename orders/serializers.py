@@ -314,6 +314,10 @@ class CollectionOrderSerializer(serializers.ModelSerializer):
     restaurant = serializers.PrimaryKeyRelatedField(queryset=Restaurant.objects.all(), required=True)
     menu = serializers.PrimaryKeyRelatedField(queryset=Menu.objects.all(), required=False, allow_null=True)
     cutoff_time = serializers.DateTimeField(required=False, allow_null=True, input_formats=['%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M:%S', 'iso-8601'])
+    # Explicitly define fee fields to ensure they're properly handled in updates
+    delivery_fee = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=False)
+    tip = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=False)
+    service_fee = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=False)
     
     class Meta:
         model = CollectionOrder

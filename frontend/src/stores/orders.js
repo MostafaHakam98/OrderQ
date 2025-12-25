@@ -222,9 +222,8 @@ export const useOrdersStore = defineStore('orders', () => {
   async function addOrderItem(itemData) {
     try {
       const response = await api.post('/order-items/', itemData)
-      if (currentOrder.value) {
-        await fetchOrderByCode(currentOrder.value.code)
-      }
+      // WebSocket will broadcast the update automatically
+      // No need to manually refetch - this ensures real-time updates work properly
       return { success: true, data: response.data }
     } catch (error) {
       return { success: false, error: error.response?.data }

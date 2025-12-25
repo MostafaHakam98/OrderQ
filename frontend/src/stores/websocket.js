@@ -9,18 +9,24 @@ export const useWebSocketStore = defineStore('websocket', () => {
   const reconnectDelay = 3000
 
   function getWebSocketUrl(orderId) {
-    // Get the base URL from the API base URL
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+    // Use the same host and protocol as the current page
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const host = window.location.host
     
-    // If API base URL is relative, use current host
-    if (apiBaseUrl.startsWith('/')) {
-      return `${protocol}//${window.location.host}${apiBaseUrl.replace('/api', '')}/ws/orders/${orderId}/`
+    // Get JWT token for authentication
+    const token = localStorage.getItem('access_token')
+    
+    // Build WebSocket URL - use same host as current page
+    let wsUrl = `${protocol}//${host}/ws/orders/${orderId}/`
+    
+    // Add token as query parameter for JWT authentication
+    if (token) {
+      wsUrl += `?token=${encodeURIComponent(token)}`
+    } else {
+      console.warn('No access token found for WebSocket authentication')
     }
     
-    // If API base URL is absolute, convert to WebSocket URL
-    const url = new URL(apiBaseUrl.replace('/api', ''))
-    return `${protocol}//${url.host}/ws/orders/${orderId}/`
+    return wsUrl
   }
 
   function connect(orderId, onMessage) {
@@ -40,16 +46,9 @@ export const useWebSocketStore = defineStore('websocket', () => {
       const ws = new WebSocket(wsUrl)
       
       ws.onopen = () => {
-        console.log('WebSocket connected')
+        console.log('WebSocket connected for order:', orderId)
         connected.value = true
         reconnectAttempts.value = 0
-        
-        // Send authentication token if available
-        const token = localStorage.getItem('access_token')
-        if (token) {
-          // Note: WebSocket authentication is handled by Django Channels middleware
-          // The token should be sent via query parameter or header if needed
-        }
       }
       
       ws.onmessage = (event) => {
@@ -66,21 +65,23 @@ export const useWebSocketStore = defineStore('websocket', () => {
       }
       
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error)
+        console.error('WebSocket error for order', orderId, ':', error)
         connected.value = false
       }
       
       ws.onclose = (event) => {
-        console.log('WebSocket closed:', event.code, event.reason)
+        console.log('WebSocket closed for order', orderId, ':', event.code, event.reason)
         connected.value = false
         
-        // Attempt to reconnect if not a normal closure
-        if (event.code !== 1000 && reconnectAttempts.value < maxReconnectAttempts) {
+        // Attempt to reconnect if not a normal closure and we have a callback
+        if (event.code !== 1000 && reconnectAttempts.value < maxReconnectAttempts && onMessage) {
           reconnectAttempts.value++
-          console.log(`Reconnecting in ${reconnectDelay}ms (attempt ${reconnectAttempts.value}/${maxReconnectAttempts})`)
+          console.log(`Reconnecting WebSocket for order ${orderId} in ${reconnectDelay}ms (attempt ${reconnectAttempts.value}/${maxReconnectAttempts})`)
           setTimeout(() => {
             connect(orderId, onMessage)
           }, reconnectDelay)
+        } else if (event.code === 1000) {
+          console.log('WebSocket closed normally for order', orderId)
         }
       }
       
