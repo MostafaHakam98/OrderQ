@@ -262,6 +262,29 @@ npm run format
 5. Set up proper database backups
 6. Configure static file serving (e.g., WhiteNoise or Nginx)
 
+## Data Migration Between Servers
+
+To migrate data from one server/node to another:
+
+1. **Export data from source node:**
+   ```bash
+   ./scripts/export_data.sh
+   ```
+
+2. **Transfer to destination node:**
+   ```bash
+   scp -r brighteat_export_* user@DESTINATION_IP:/path/to/BrightEat/
+   ```
+
+3. **Import on destination node:**
+   ```bash
+   ./scripts/import_data.sh brighteat_export_YYYYMMDD_HHMMSS
+   ```
+
+4. **Update configuration** with new IP address and restart services.
+
+For detailed instructions, see [Migration Guide](docs/MIGRATION_GUIDE.md) or [Quick Start](scripts/MIGRATION_QUICK_START.md).
+
 ## License
 
 See LICENSE file for details.

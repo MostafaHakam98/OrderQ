@@ -167,6 +167,18 @@
                   Add
                 </button>
               </div>
+              <div class="mt-2">
+                <textarea
+                  v-model="itemNote"
+                  type="text"
+                  placeholder="Add a note (e.g., no lettuce, extra sauce)"
+                  rows="2"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 text-sm"
+                ></textarea>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Optional: Add special instructions or modifications for this item
+                </p>
+              </div>
               <div class="border-t dark:border-gray-700 pt-4">
                 <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Or add custom item:</p>
                 <div class="space-y-2">
@@ -191,6 +203,18 @@
                     >
                       Add Custom
                     </button>
+                  </div>
+                  <div>
+                    <textarea
+                      v-model="customItemNote"
+                      type="text"
+                      placeholder="Add a note (e.g., no lettuce, extra sauce)"
+                      rows="2"
+                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 text-sm"
+                    ></textarea>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Optional: Add special instructions or modifications for this item
+                    </p>
                   </div>
                   <p class="text-xs text-gray-500">
                     Custom item will be assigned to: {{ selectedItemUser ? (allUsers.find(u => u.id === selectedItemUser)?.username || 'selected user') : authStore.user?.username }}
@@ -223,6 +247,9 @@
                     </span>
                   </div>
                   <p class="text-sm text-gray-600 dark:text-gray-400">{{ item.user_name }} - Qty: {{ item.quantity }} × {{ formatPrice(item.unit_price) }} EGP</p>
+                  <p v-if="item.note" class="text-sm text-gray-500 dark:text-gray-500 italic mt-1">
+                    📝 Note: {{ item.note }}
+                  </p>
                 </div>
                 <div class="flex items-center space-x-4">
                   <span class="font-semibold dark:text-white">{{ formatPrice(item.total_price) }} EGP</span>
@@ -788,8 +815,10 @@ const loading = ref(true)
 const error = ref(null)
 const selectedMenuItem = ref('')
 const itemQuantity = ref(1)
+const itemNote = ref('')
 const customItemName = ref('')
 const customItemPrice = ref(0)
+const customItemNote = ref('')
 const selectedItemUser = ref(null) // User to assign the item to (null = current user)
 const instapayQrCanvas = ref(null)
 const transferCollectorId = ref('')
@@ -1076,6 +1105,11 @@ async function addMenuItem() {
       quantity: itemQuantity.value,
     }
 
+    // Add note if provided
+    if (itemNote.value && itemNote.value.trim()) {
+      itemData.note = itemNote.value.trim()
+    }
+
     // Add user if specified and user has permission
     if (selectedItemUser.value && (order.collector === authStore.user?.id || authStore.isManager)) {
       itemData.user = selectedItemUser.value
@@ -1086,6 +1120,7 @@ async function addMenuItem() {
     if (result.success) {
       selectedMenuItem.value = ''
       itemQuantity.value = 1
+      itemNote.value = ''
       selectedItemUser.value = null // Reset to default (current user)
       // Don't manually refetch - WebSocket will broadcast the update automatically
       // await ordersStore.fetchOrderByCode(route.params.code.toUpperCase())
@@ -1134,6 +1169,11 @@ async function addCustomItem() {
       quantity: 1,
     }
 
+    // Add note if provided
+    if (customItemNote.value && customItemNote.value.trim()) {
+      itemData.note = customItemNote.value.trim()
+    }
+
     // Add user if specified and user has permission
     if (selectedItemUser.value && (order.collector === authStore.user?.id || authStore.isManager)) {
       itemData.user = selectedItemUser.value
@@ -1162,6 +1202,7 @@ async function addCustomItem() {
         // No prompts, just reset
         customItemName.value = ''
         customItemPrice.value = 0
+        customItemNote.value = ''
         selectedItemUser.value = null
         // Don't manually refetch - WebSocket will broadcast the update automatically
         // await ordersStore.fetchOrderByCode(route.params.code.toUpperCase())

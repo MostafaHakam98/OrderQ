@@ -181,7 +181,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
         fields = ['id', 'order', 'user', 'user_name', 'menu_item', 'custom_name', 
-                  'custom_price', 'quantity', 'unit_price', 'total_price', 'item_name', 'created_at',
+                  'custom_price', 'quantity', 'unit_price', 'total_price', 'item_name', 'note', 'created_at',
                   'suggest_add_to_menu', 'suggest_update_price', 'existing_menu_item_id']
         read_only_fields = ['id', 'unit_price', 'total_price', 'created_at', 
                            'suggest_add_to_menu', 'suggest_update_price', 'existing_menu_item_id']
