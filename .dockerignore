@@ -26,8 +26,16 @@ node_modules/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+mobile/build/
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
 .DS_Store
 *.swp
 *.swo
 *~
+*.csv
+emails.txt
+debug_blocked.html
 
