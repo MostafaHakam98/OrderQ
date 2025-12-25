@@ -23,19 +23,19 @@ mkdir -p "$EXPORT_DIR/database"
 
 cd "$PROJECT_ROOT"
 
-# Check if Docker Compose is running
-if ! docker-compose ps | grep -q "Up"; then
-    echo "Warning: Docker Compose services don't appear to be running."
+# Check if docker compose  is running
+if ! docker compose ps | grep -q "Up"; then
+    echo "Warning: docker compose  services don't appear to be running."
     echo "Attempting to export anyway..."
 fi
 
 # Export PostgreSQL database
 echo "Step 1: Exporting PostgreSQL database..."
-DB_CONTAINER=$(docker-compose ps -q db 2>/dev/null || echo "")
+DB_CONTAINER=$(docker compose ps -q db 2>/dev/null || echo "")
 
 if [ -n "$DB_CONTAINER" ]; then
     echo "Found database container: $DB_CONTAINER"
-    docker-compose exec -T db pg_dump -U postgres brighteat > "$EXPORT_DIR/database/brighteat_dump.sql"
+    docker compose exec -T db pg_dump -U postgres brighteat > "$EXPORT_DIR/database/brighteat_dump.sql"
     echo "✓ Database exported to $EXPORT_DIR/database/brighteat_dump.sql"
 else
     echo "⚠ Database container not found. If using external database, export manually:"
@@ -55,12 +55,12 @@ fi
 # Export Redis data (optional)
 echo ""
 echo "Step 3: Exporting Redis data (optional)..."
-REDIS_CONTAINER=$(docker-compose ps -q redis 2>/dev/null || echo "")
+REDIS_CONTAINER=$(docker compose ps -q redis 2>/dev/null || echo "")
 
 if [ -n "$REDIS_CONTAINER" ]; then
     echo "Found Redis container: $REDIS_CONTAINER"
-    docker-compose exec -T redis redis-cli --rdb "$EXPORT_DIR/redis_dump.rdb" 2>/dev/null || \
-    docker-compose exec -T redis redis-cli SAVE > /dev/null 2>&1 && \
+    docker compose exec -T redis redis-cli --rdb "$EXPORT_DIR/redis_dump.rdb" 2>/dev/null || \
+    docker compose exec -T redis redis-cli SAVE > /dev/null 2>&1 && \
     docker cp "$REDIS_CONTAINER:/data/dump.rdb" "$EXPORT_DIR/redis_dump.rdb" 2>/dev/null || \
     echo "⚠ Redis export failed (this is optional)"
     
@@ -140,11 +140,11 @@ This directory contains exported data from the source node.
 
 4. **Start the services:**
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 5. **Verify the migration:**
-   - Check that the database has data: `docker-compose exec db psql -U postgres -d brighteat -c "SELECT COUNT(*) FROM orders_user;"`
+   - Check that the database has data: `docker compose exec db psql -U postgres -d brighteat -c "SELECT COUNT(*) FROM orders_user;"`
    - Check media files are accessible
    - Test the application
 
@@ -153,7 +153,7 @@ This directory contains exported data from the source node.
 ### Database:
 ```bash
 # On destination node
-docker-compose exec -T db psql -U postgres brighteat < database/brighteat_dump.sql
+docker compose exec -T db psql -U postgres brighteat < database/brighteat_dump.sql
 ```
 
 ### Media Files:
@@ -165,8 +165,8 @@ cp -r media/* /path/to/BrightEat/media/
 ### Redis (optional):
 ```bash
 # Copy Redis dump to container
-docker cp redis_dump.rdb $(docker-compose ps -q redis):/data/dump.rdb
-docker-compose restart redis
+docker cp redis_dump.rdb $(docker compose ps -q redis):/data/dump.rdb
+docker compose restart redis
 ```
 EOF
 

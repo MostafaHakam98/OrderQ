@@ -21,7 +21,7 @@ BrightEat/
 ├── docs/               # Additional documentation (this directory)
 ├── manage.py           # Django management script
 ├── requirements.txt    # Python dependencies
-├── docker-compose.yml  # Docker Compose configuration
+├── docker-compose.yml  # docker compose  configuration
 └── Dockerfile          # Docker image configuration
 ```
 

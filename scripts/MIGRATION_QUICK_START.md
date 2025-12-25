@@ -36,14 +36,14 @@ chmod +x scripts/import_data.sh
 
 2. Restart services:
    ```bash
-   docker-compose restart
+   docker compose restart
    ```
 
 ## Verify
 
 ```bash
 # Check database
-docker-compose exec db psql -U postgres -d brighteat -c "SELECT COUNT(*) FROM orders_user;"
+docker compose exec db psql -U postgres -d brighteat -c "SELECT COUNT(*) FROM orders_user;"
 
 # Test application
 curl http://NEW_IP:19991

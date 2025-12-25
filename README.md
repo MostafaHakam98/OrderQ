@@ -25,7 +25,7 @@ An internal food-ordering portal to replace WhatsApp collections for daily team 
 
 - **Backend:** Django 5 + DRF + PostgreSQL + JWT auth
 - **Frontend:** Vue 3 + Vite + Pinia + TailwindCSS
-- **Containerization:** Docker Compose
+- **Containerization:** docker compose 
 
 ## Quick Start with Docker
 
@@ -36,7 +36,7 @@ An internal food-ordering portal to replace WhatsApp collections for daily team 
 
 2. **Start all services:**
    ```bash
-   docker-compose up --build
+   docker compose up --build
    ```
 
 3. **Access the application:**
@@ -208,7 +208,7 @@ OrderQ/
 │   │   ├── stores/     # Pinia stores
 │   │   └── router/      # Vue Router config
 │   └── package.json
-├── docker-compose.yml   # Docker Compose config
+├── docker-compose.yml   # docker compose config
 ├── Dockerfile           # Backend Dockerfile
 └── requirements.txt     # Python dependencies
 ```

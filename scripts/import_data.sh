@@ -36,18 +36,18 @@ echo ""
 
 cd "$PROJECT_ROOT"
 
-# Check if Docker Compose is available
-if ! command -v docker-compose &> /dev/null; then
-    echo "Error: docker-compose not found. Please install Docker Compose."
+# Check if docker compose  is available
+if ! command -v docker compose &> /dev/null; then
+    echo "Error: docker compose not found. Please install docker compose ."
     exit 1
 fi
 
 # Check if services are running
-echo "Checking Docker Compose services..."
-if ! docker-compose ps | grep -q "Up"; then
-    echo "Warning: Docker Compose services are not running."
+echo "Checking docker compose  services..."
+if ! docker compose ps | grep -q "Up"; then
+    echo "Warning: docker compose  services are not running."
     echo "Starting services..."
-    docker-compose up -d db redis
+    docker compose up -d db redis
     echo "Waiting for services to be ready..."
     sleep 10
 fi
@@ -55,10 +55,10 @@ fi
 # Import PostgreSQL database
 echo ""
 echo "Step 1: Importing PostgreSQL database..."
-DB_CONTAINER=$(docker-compose ps -q db 2>/dev/null || echo "")
+DB_CONTAINER=$(docker compose ps -q db 2>/dev/null || echo "")
 
 if [ -z "$DB_CONTAINER" ]; then
-    echo "Error: Database container not found. Please start Docker Compose services first."
+    echo "Error: Database container not found. Please start docker compose  services first."
     exit 1
 fi
 
@@ -80,11 +80,11 @@ if [ "$confirm" != "yes" ]; then
 fi
 
 # Create database if it doesn't exist
-docker-compose exec -T db psql -U postgres -c "DROP DATABASE IF EXISTS brighteat;" 2>/dev/null || true
-docker-compose exec -T db psql -U postgres -c "CREATE DATABASE brighteat;" 2>/dev/null || true
+docker compose exec -T db psql -U postgres -c "DROP DATABASE IF EXISTS brighteat;" 2>/dev/null || true
+docker compose exec -T db psql -U postgres -c "CREATE DATABASE brighteat;" 2>/dev/null || true
 
 # Import the dump
-docker-compose exec -T db psql -U postgres brighteat < "$DB_DUMP"
+docker compose exec -T db psql -U postgres brighteat < "$DB_DUMP"
 echo "✓ Database imported successfully"
 
 # Import media files
@@ -109,15 +109,15 @@ echo ""
 echo "Step 3: Importing Redis data (optional)..."
 REDIS_DUMP="$EXPORT_DIR/redis_dump.rdb"
 if [ -f "$REDIS_DUMP" ]; then
-    REDIS_CONTAINER=$(docker-compose ps -q redis 2>/dev/null || echo "")
+    REDIS_CONTAINER=$(docker compose ps -q redis 2>/dev/null || echo "")
     if [ -n "$REDIS_CONTAINER" ]; then
         echo "Found Redis container: $REDIS_CONTAINER"
         # Stop Redis to import data
-        docker-compose stop redis
+        docker compose stop redis
         # Copy dump file
         docker cp "$REDIS_DUMP" "$REDIS_CONTAINER:/data/dump.rdb"
         # Restart Redis
-        docker-compose start redis
+        docker compose start redis
         echo "✓ Redis data imported"
     else
         echo "⚠ Redis container not found. Skipping Redis import."
@@ -129,17 +129,17 @@ fi
 # Run migrations (in case schema changed)
 echo ""
 echo "Step 4: Running database migrations..."
-docker-compose exec -T backend python manage.py migrate --noinput 2>/dev/null || {
+docker compose exec -T backend python manage.py migrate --noinput 2>/dev/null || {
     echo "⚠ Could not run migrations automatically. Run manually:"
-    echo "   docker-compose exec backend python manage.py migrate"
+    echo "   docker compose exec backend python manage.py migrate"
 }
 
 # Collect static files
 echo ""
 echo "Step 5: Collecting static files..."
-docker-compose exec -T backend python manage.py collectstatic --noinput 2>/dev/null || {
+docker compose exec -T backend python manage.py collectstatic --noinput 2>/dev/null || {
     echo "⚠ Could not collect static files automatically. Run manually:"
-    echo "   docker-compose exec backend python manage.py collectstatic --noinput"
+    echo "   docker compose exec backend python manage.py collectstatic --noinput"
 }
 
 echo ""
@@ -150,7 +150,7 @@ echo ""
 echo "Next steps:"
 echo "1. Update environment variables in docker-compose.yml or .env file"
 echo "2. Update IP addresses and URLs for the new server"
-echo "3. Restart services: docker-compose restart"
+echo "3. Restart services: docker compose restart"
 echo "4. Verify the migration by checking the application"
 echo ""
 

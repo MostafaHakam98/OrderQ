@@ -13,7 +13,7 @@ The migration process involves:
 ## Prerequisites
 
 - Access to both source and destination nodes
-- Docker and Docker Compose installed on both nodes
+- Docker and docker compose  installed on both nodes
 - SSH access to transfer files (or use alternative methods)
 - Sufficient disk space for the export
 
@@ -85,11 +85,11 @@ tar -xzf brighteat_export_*.tar.gz
    cd /path/to/BrightEat
    ```
 
-2. **Ensure Docker Compose services are set up:**
+2. **Ensure docker compose  services are set up:**
    ```bash
    # Make sure docker-compose.yml is configured
    # Start database and Redis services
-   docker-compose up -d db redis
+   docker compose up -d db redis
    ```
 
 3. **Make the import script executable:**
@@ -141,25 +141,25 @@ tar -xzf brighteat_export_*.tar.gz
    - Rebuild frontend if necessary:
      ```bash
      cd frontend
-     docker-compose build frontend
+     docker compose build frontend
      ```
 
 ### Step 5: Restart Services
 
 ```bash
 # Restart all services
-docker-compose restart
+docker compose restart
 
 # Or rebuild and start fresh
-docker-compose down
-docker-compose up -d --build
+docker compose down
+docker compose up -d --build
 ```
 
 ### Step 6: Verify Migration
 
 1. **Check database:**
    ```bash
-   docker-compose exec db psql -U postgres -d brighteat -c "SELECT COUNT(*) FROM orders_user;"
+   docker compose exec db psql -U postgres -d brighteat -c "SELECT COUNT(*) FROM orders_user;"
    ```
 
 2. **Check media files:**
@@ -181,7 +181,7 @@ If the scripts don't work, you can migrate manually:
 **On source node:**
 ```bash
 # Export database
-docker-compose exec db pg_dump -U postgres brighteat > brighteat_dump.sql
+docker compose exec db pg_dump -U postgres brighteat > brighteat_dump.sql
 
 # Or if using external database
 pg_dump -h SOURCE_DB_HOST -U postgres brighteat > brighteat_dump.sql
@@ -190,11 +190,11 @@ pg_dump -h SOURCE_DB_HOST -U postgres brighteat > brighteat_dump.sql
 **On destination node:**
 ```bash
 # Import database
-docker-compose exec -T db psql -U postgres brighteat < brighteat_dump.sql
+docker compose exec -T db psql -U postgres brighteat < brighteat_dump.sql
 
 # Or create database first if it doesn't exist
-docker-compose exec db psql -U postgres -c "CREATE DATABASE brighteat;"
-docker-compose exec -T db psql -U postgres brighteat < brighteat_dump.sql
+docker compose exec db psql -U postgres -c "CREATE DATABASE brighteat;"
+docker compose exec -T db psql -U postgres brighteat < brighteat_dump.sql
 ```
 
 ### Manual Media Files Transfer
@@ -215,7 +215,7 @@ tar -xzf media_backup.tar.gz
 
 - **Error: "database does not exist"**
   ```bash
-  docker-compose exec db psql -U postgres -c "CREATE DATABASE brighteat;"
+  docker compose exec db psql -U postgres -c "CREATE DATABASE brighteat;"
   ```
 
 - **Error: "permission denied"**
@@ -236,8 +236,8 @@ tar -xzf media_backup.tar.gz
 - Redis import is optional - the application will work without it
 - If needed, manually copy the dump file:
   ```bash
-  docker cp redis_dump.rdb $(docker-compose ps -q redis):/data/dump.rdb
-  docker-compose restart redis
+  docker cp redis_dump.rdb $(docker compose ps -q redis):/data/dump.rdb
+  docker compose restart redis
   ```
 
 ### Connection Issues After Migration
@@ -262,7 +262,7 @@ If something goes wrong, you can rollback:
 
 1. **Stop services on destination:**
    ```bash
-   docker-compose down
+   docker compose down
    ```
 
 2. **Restore from backup** (if you created one)
@@ -280,7 +280,7 @@ If something goes wrong, you can rollback:
 
 If you encounter issues:
 1. Check the export/import script logs
-2. Review Docker Compose logs: `docker-compose logs`
-3. Verify database connectivity: `docker-compose exec db psql -U postgres -c "\l"`
+2. Review docker compose  logs: `docker compose logs`
+3. Verify database connectivity: `docker compose exec db psql -U postgres -c "\l"`
 4. Check file permissions and ownership
 
