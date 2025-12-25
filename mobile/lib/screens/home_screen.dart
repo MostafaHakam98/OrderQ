@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/orders_provider.dart';
@@ -30,28 +31,34 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        // Show exit confirmation dialog
-        final shouldExit = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Exit OrderQ?'),
-            content: const Text('Are you sure you want to exit the application?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('Exit', style: TextStyle(color: Colors.white)),
-              ),
-            ],
-          ),
-        );
-        return shouldExit ?? false;
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (!didPop) {
+          // Show exit confirmation dialog
+          final shouldExit = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Exit OrderQ?'),
+              content: const Text('Are you sure you want to exit the application?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  child: const Text('Exit', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          );
+          if (shouldExit == true) {
+            // Exit the app
+            SystemNavigator.pop();
+          }
+        }
       },
       child: Scaffold(
       appBar: AppBar(

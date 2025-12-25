@@ -68,7 +68,13 @@ class AuthProvider extends ChangeNotifier {
       _user = await authService.getCurrentUser();
       notifyListeners();
     } catch (e) {
-      // If fetching user fails (e.g., token expired), clear user
+      // If fetching user fails (e.g., token expired, network error), clear user
+      // Only log if it's not a connection error (those are logged in API service)
+      if (e.toString().contains('connection') || e.toString().contains('SocketException')) {
+        // Connection errors are expected and already logged, just clear user silently
+      } else {
+        print('⚠️ Failed to fetch user: $e');
+      }
       _user = null;
       notifyListeners();
     }

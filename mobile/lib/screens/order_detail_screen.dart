@@ -1387,6 +1387,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             ],
             if ((order.status == 'ORDERED' || order.status == 'LOCKED') &&
                 (isCollector || isManager)) ...[
+              const SizedBox(height: 12),
               ElevatedButton.icon(
                 onPressed: () async {
                   final confirmed = await showDialog<bool>(
@@ -2161,7 +2162,13 @@ class _ExpandableItemCardState extends State<_ExpandableItemCard> {
     final isOwner = widget.item.user.id == currentUserId;
     final canRemove = widget.order.status == 'OPEN' && (isOwner || isCollector || isManager);
     
-    final itemName = widget.item.menuItem?.name ?? widget.item.customName ?? 'Item';
+    // Get item name - check if menuItem exists and has a name
+    String itemName = 'Unnamed Item';
+    if (widget.item.menuItem != null && widget.item.menuItem!.name.isNotEmpty) {
+      itemName = widget.item.menuItem!.name;
+    } else if (widget.item.customName != null && widget.item.customName!.isNotEmpty) {
+      itemName = widget.item.customName!;
+    }
     
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -2227,7 +2234,7 @@ class _ExpandableItemCardState extends State<_ExpandableItemCard> {
                       children: [
                         // Item name - ensure it's always visible
                         Text(
-                          itemName.isNotEmpty ? itemName : 'Unnamed Item',
+                          itemName,
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 16,
@@ -2236,66 +2243,34 @@ class _ExpandableItemCardState extends State<_ExpandableItemCard> {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 6),
-                        // Quantity, unit price, and "Yours" badge in a row
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '${widget.item.quantity}x ${widget.item.unitPrice.toStringAsFixed(2)} EGP',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey[600],
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
+                        // "Yours" badge if applicable (only in collapsed view)
+                        if (isOwner && widget.order.status == 'OPEN') ...[
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[600],
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'Yours',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                            if (isOwner && widget.order.status == 'OPEN') ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue[600],
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: const Text(
-                                  'Yours',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // Price and expand icon
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '${widget.item.totalPrice.toStringAsFixed(2)} EGP',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Colors.blue[700],
-                        ),
-                        textAlign: TextAlign.end,
-                      ),
-                      const SizedBox(height: 4),
-                      Icon(
-                        _isExpanded ? Icons.expand_less : Icons.expand_more,
-                        color: Theme.of(context).textTheme.bodyMedium?.color,
-                        size: 20,
-                      ),
-                    ],
+                  // Expand icon only (price shown in expanded view)
+                  Icon(
+                    _isExpanded ? Icons.expand_less : Icons.expand_more,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    size: 24,
                   ),
                 ],
               ),
@@ -2374,37 +2349,6 @@ class _ExpandableItemCardState extends State<_ExpandableItemCard> {
                       ),
                       const SizedBox(height: 12),
                     ],
-                    // Subtotal
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.blue[900]!.withOpacity(0.2)
-                            : Colors.blue[50],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Subtotal:',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Theme.of(context).textTheme.bodyMedium?.color,
-                            ),
-                          ),
-                          Text(
-                            '${widget.item.totalPrice.toStringAsFixed(2)} EGP',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue[700],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                     // Remove button
                     if (canRemove) ...[
                       const SizedBox(height: 12),

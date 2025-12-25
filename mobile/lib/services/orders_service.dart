@@ -20,11 +20,76 @@ class OrdersService {
       final results = data['results'] ?? data;
       if (results is List) {
         final orders = <CollectionOrder>[];
+        
+        // Collect all menu IDs and menu item IDs from all orders
+        Map<int, Set<int>> menuToMenuItemIds = {};
         for (var i = 0; i < results.length; i++) {
           try {
             final json = results[i];
-            if (json is Map<String, dynamic>) {
-              orders.add(CollectionOrder.fromJson(json));
+            if (json is Map) {
+              final orderData = json is Map<String, dynamic> ? json : Map<String, dynamic>.from(json);
+              
+              // Extract menu ID
+              int? menuId;
+              if (orderData['menu'] != null) {
+                if (orderData['menu'] is Map) {
+                  menuId = orderData['menu']['id'];
+                } else if (orderData['menu'] is int) {
+                  menuId = orderData['menu'];
+                }
+              }
+              
+              // Extract menu item IDs from order items
+              if (menuId != null && orderData['items'] != null && orderData['items'] is List) {
+                final items = orderData['items'] as List;
+                for (var item in items) {
+                  if (item is Map && item['menu_item'] != null && item['menu_item'] is int) {
+                    menuToMenuItemIds.putIfAbsent(menuId, () => <int>{}).add(item['menu_item'] as int);
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            // Continue processing other orders
+          }
+        }
+        
+        // Fetch menu items for all menus
+        Map<int, MenuItem> allMenuItems = {};
+        for (var menuId in menuToMenuItemIds.keys) {
+          try {
+            final menuItems = await fetchMenuItems(menuId: menuId);
+            for (var item in menuItems) {
+              allMenuItems[item.id] = item;
+            }
+          } catch (e) {
+            print('⚠️ Could not fetch menu items for menu $menuId: $e');
+          }
+        }
+        
+        // Parse orders and enhance with menu item names
+        for (var i = 0; i < results.length; i++) {
+          try {
+            final json = results[i];
+            if (json is Map) {
+              final orderData = json is Map<String, dynamic> ? json : Map<String, dynamic>.from(json);
+              
+              // Enhance order items with menu item names
+              if (orderData['items'] != null && orderData['items'] is List) {
+                final items = orderData['items'] as List;
+                for (var item in items) {
+                  if (item is Map && item['menu_item'] != null && item['menu_item'] is int) {
+                    final menuItemId = item['menu_item'] as int;
+                    final menuItem = allMenuItems[menuItemId];
+                    if (menuItem != null) {
+                      item['menu_item_name'] = menuItem.name;
+                      item['menu_item_menu'] = menuItem.menu;
+                    }
+                  }
+                }
+              }
+              
+              orders.add(CollectionOrder.fromJson(orderData));
             } else {
               print('⚠️ Warning: Order at index $i is not a Map. Type: ${json.runtimeType}, Value: $json');
             }
@@ -53,8 +118,72 @@ class OrdersService {
   Future<CollectionOrder?> fetchOrderByCode(String code) async {
     try {
       final response = await apiService.getOrderByCode(code);
-      return CollectionOrder.fromJson(response.data);
+      final orderData = response.data;
+      
+      // Parse order items manually to extract menu_item IDs before creating OrderItem objects
+      List<Map<String, dynamic>>? itemsData;
+      if (orderData is Map && orderData['items'] != null) {
+        itemsData = (orderData['items'] as List).map((i) {
+          if (i is Map) {
+            return i is Map<String, dynamic> ? i : Map<String, dynamic>.from(i);
+          }
+          return null;
+        }).whereType<Map<String, dynamic>>().toList();
+      }
+      
+      // Collect menu item IDs that are just integers
+      Set<int> menuItemIds = {};
+      if (itemsData != null) {
+        for (var itemData in itemsData) {
+          if (itemData['menu_item'] != null && itemData['menu_item'] is int) {
+            menuItemIds.add(itemData['menu_item'] as int);
+          }
+        }
+      }
+      
+      // Fetch menu items if we have IDs to look up
+      Map<int, MenuItem> menuItemMap = {};
+      if (menuItemIds.isNotEmpty && orderData is Map) {
+        try {
+          // Try to fetch menu items by the order's menu ID
+          int? menuId;
+          if (orderData['menu'] != null) {
+            if (orderData['menu'] is Map) {
+              menuId = orderData['menu']['id'];
+            } else if (orderData['menu'] is int) {
+              menuId = orderData['menu'];
+            }
+          }
+          
+          if (menuId != null) {
+            final menuItems = await fetchMenuItems(menuId: menuId);
+            menuItemMap = {for (var item in menuItems) item.id: item};
+          }
+        } catch (e) {
+          print('⚠️ Could not fetch menu items to match names: $e');
+        }
+      }
+      
+      // Enhance order data with menu item details
+      if (itemsData != null && menuItemMap.isNotEmpty) {
+        for (var itemData in itemsData) {
+          if (itemData['menu_item'] is int) {
+            final menuItemId = itemData['menu_item'] as int;
+            final menuItem = menuItemMap[menuItemId];
+            if (menuItem != null) {
+              // Add menu_item_name to help OrderItem.fromJson create a MenuItem
+              itemData['menu_item_name'] = menuItem.name;
+              itemData['menu_item_menu'] = menuItem.menu;
+            }
+          }
+        }
+      }
+      
+      return CollectionOrder.fromJson(orderData is Map<String, dynamic> 
+          ? orderData 
+          : Map<String, dynamic>.from(orderData));
     } catch (e) {
+      print('❌ Error fetching order by code: $e');
       return null;
     }
   }
@@ -320,21 +449,43 @@ class OrdersService {
     try {
       final response = await apiService.getUsers();
       final data = response.data;
-      final results = data['results'] ?? data;
+      
+      // Handle different response structures
+      dynamic results;
+      if (data is Map) {
+        if (data.containsKey('results')) {
+          results = data['results'];
+        } else {
+          results = data;
+        }
+      } else if (data is List) {
+        results = data;
+      } else {
+        print('⚠️ Unexpected users response type: ${data.runtimeType}');
+        print('⚠️ Users response data: $data');
+        return [];
+      }
+      
       if (results is List) {
         return results.map((json) {
-          if (json is Map) {
-            final jsonMap = json is Map<String, dynamic>
-                ? json
-                : Map<String, dynamic>.from(json);
-            return User.fromJson(jsonMap);
+          try {
+            if (json is Map) {
+              final jsonMap = json is Map<String, dynamic>
+                  ? json
+                  : Map<String, dynamic>.from(json);
+              return User.fromJson(jsonMap);
+            }
+            return null;
+          } catch (e) {
+            print('❌ Error parsing user: $e, user data: $json');
+            return null;
           }
-          return null;
         }).whereType<User>().toList();
       }
       return [];
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ Error fetching users: $e');
+      print('❌ Stack trace: $stackTrace');
       return [];
     }
   }

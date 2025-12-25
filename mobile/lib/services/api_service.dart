@@ -61,21 +61,31 @@ class ApiService {
         return handler.next(response);
       },
       onError: (error, handler) async {
-        // Debug: Print error details
-        print('❌ ========== ERROR START ==========');
-        print('❌ Error Type: ${error.type}');
-        print('❌ Error Message: ${error.message}');
-        print('❌ Request URL: ${error.requestOptions.baseUrl}${error.requestOptions.path}');
-        print('❌ Request Method: ${error.requestOptions.method}');
-        if (error.response != null) {
-          print('❌ Response Status: ${error.response?.statusCode}');
-          print('❌ Response Data: ${error.response?.data}');
-          print('❌ Response Headers: ${error.response?.headers}');
+        // Only log detailed errors for non-connection issues or important endpoints
+        final isConnectionError = error.type == DioExceptionType.connectionError ||
+            error.type == DioExceptionType.connectionTimeout ||
+            error.type == DioExceptionType.receiveTimeout;
+        
+        // For connection errors, use simpler logging
+        if (isConnectionError) {
+          print('⚠️ Connection error: ${error.requestOptions.path} - ${error.message}');
         } else {
-          print('❌ No response received (connection failed)');
-          print('❌ Error Object: ${error.error}');
+          // Debug: Print error details for other errors
+          print('❌ ========== ERROR START ==========');
+          print('❌ Error Type: ${error.type}');
+          print('❌ Error Message: ${error.message}');
+          print('❌ Request URL: ${error.requestOptions.baseUrl}${error.requestOptions.path}');
+          print('❌ Request Method: ${error.requestOptions.method}');
+          if (error.response != null) {
+            print('❌ Response Status: ${error.response?.statusCode}');
+            print('❌ Response Data: ${error.response?.data}');
+            print('❌ Response Headers: ${error.response?.headers}');
+          } else {
+            print('❌ No response received (connection failed)');
+            print('❌ Error Object: ${error.error}');
+          }
+          print('❌ ========== ERROR END ==========');
         }
-        print('❌ ========== ERROR END ==========');
         
         // Handle 401 errors (token refresh)
         if (error.response?.statusCode == 401) {

@@ -63,6 +63,21 @@ class OrderItem {
         menuItemObj = MenuItem.fromJson(json['menu_item'] as Map<String, dynamic>);
       } else if (json['menu_item'] is Map) {
         menuItemObj = MenuItem.fromJson(Map<String, dynamic>.from(json['menu_item']));
+      } else if (json['menu_item'] is int) {
+        // If menu_item is just an ID, try to get name from menu_item_name field
+        // Some APIs return menu_item_name separately when menu_item is just an ID
+        if (json['menu_item_name'] != null) {
+          // Create a minimal MenuItem with just the name
+          menuItemObj = MenuItem(
+            id: json['menu_item'] as int,
+            name: json['menu_item_name'] as String,
+            price: _parseDouble(json['unit_price']) ?? 0.0,
+            menu: json['menu_item_menu'] ?? 0,
+            isAvailable: true,
+          );
+        } else {
+          print('⚠️ Menu item is just an ID (${json['menu_item']}) without name. Item name may be missing.');
+        }
       }
     }
 

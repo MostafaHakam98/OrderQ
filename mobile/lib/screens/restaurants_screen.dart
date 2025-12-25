@@ -42,7 +42,7 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        // Navigate to home when back is pressed
+        // Always navigate to home when back is pressed, never exit
         context.go('/');
         return false; // Prevent default back behavior
       },

@@ -130,13 +130,26 @@ class _RestaurantWheelScreenState extends State<RestaurantWheelScreen>
     // - Segment i's center is at: i * sectorSize - π/2 + sectorSize/2
     final sectorSize = (2 * math.pi) / selectedRestaurants.length;
     
-    // When we rotate clockwise by angle θ, a point at angle α moves to α - θ
-    // Segment selectedIndex's center is at: selectedIndex * sectorSize - π/2 + sectorSize/2
-    // We want it at -π/2 after rotation
-    // So: (selectedIndex * sectorSize - π/2 + sectorSize/2) - θ = -π/2
-    // Therefore: θ = selectedIndex * sectorSize + sectorSize/2
-    // We add base rotations for visual effect
-    _finalRotation = (baseRotations * 2 * math.pi) + (selectedIndex * sectorSize) + (sectorSize / 2);
+    // Transform.rotate rotates COUNTER-CLOCKWISE for positive angles
+    // The selected segment's center angle (before rotation) is:
+    // selectedIndex * sectorSize - π/2 + sectorSize/2
+    // After rotating counter-clockwise by θ, it becomes:
+    // (selectedIndex * sectorSize - π/2 + sectorSize/2) + θ
+    // We want this to equal -π/2 (where the pointer is)
+    // So: (selectedIndex * sectorSize - π/2 + sectorSize/2) + θ = -π/2
+    // Therefore: θ = -selectedIndex * sectorSize - sectorSize/2
+    // 
+    // To get a positive rotation, we add full rotations:
+    // θ = (baseRotations * 2 * π) - (selectedIndex * sectorSize) - (sectorSize / 2)
+    final targetAngle = selectedIndex * sectorSize + sectorSize / 2;
+    
+    // Subtract target angle to rotate counter-clockwise to align with pointer
+    _finalRotation = (baseRotations * 2 * math.pi) - targetAngle;
+    
+    // Ensure positive rotation by adding 2π if needed
+    while (_finalRotation < 0) {
+      _finalRotation += 2 * math.pi;
+    }
 
     _spinController.reset();
     _spinController.forward().then((_) {
@@ -227,7 +240,7 @@ class _RestaurantWheelScreenState extends State<RestaurantWheelScreen>
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        // Navigate to home when back is pressed
+        // Always navigate to home when back is pressed, never exit
         context.go('/');
         return false; // Prevent default back behavior
       },
