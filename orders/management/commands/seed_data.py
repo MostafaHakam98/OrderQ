@@ -15,7 +15,7 @@ class Command(BaseCommand):
         manager, created = User.objects.get_or_create(
             username='manager',
             defaults={
-                'email': 'manager@brighteat.com',
+                'email': 'manager@orderq.com',
                 'first_name': 'Menu',
                 'last_name': 'Manager',
                 'role': 'manager',
@@ -32,7 +32,7 @@ class Command(BaseCommand):
         member, created = User.objects.get_or_create(
             username='mostafa',
             defaults={
-                'email': 'mostafa@brighteat.com',
+                'email': 'mostafa@orderq.com',
                 'first_name': 'Mostafa',
                 'last_name': 'Hakam',
                 'role': 'user',

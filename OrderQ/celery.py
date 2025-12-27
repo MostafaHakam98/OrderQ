@@ -1,14 +1,14 @@
 """
-Celery configuration for BrightEat project.
+Celery configuration for OrderQ project.
 """
 import os
 from celery import Celery
 from django.conf import settings
 
 # Set the default Django settings module for the 'celery' program.
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'BrightEat.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'OrderQ.settings')
 
-app = Celery('BrightEat')
+app = Celery('OrderQ')
 
 # Using a string here means the worker doesn't have to serialize
 # the configuration object to child processes.

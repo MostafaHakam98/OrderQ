@@ -3,29 +3,29 @@
 ## Export from Source Node
 
 ```bash
-cd /path/to/BrightEat
+cd /path/to/OrderQ
 chmod +x scripts/export_data.sh
 ./scripts/export_data.sh
 ```
 
-This creates: `brighteat_export_YYYYMMDD_HHMMSS/` or `.tar.gz`
+This creates: `orderq_export_YYYYMMDD_HHMMSS/` or `.tar.gz`
 
 ## Transfer to Destination Node
 
 ```bash
 # Using SCP
-scp -r brighteat_export_* user@DESTINATION_IP:/path/to/BrightEat/
+scp -r orderq_export_* user@DESTINATION_IP:/path/to/OrderQ/
 
 # Or using RSYNC (better for large files)
-rsync -avz --progress brighteat_export_* user@DESTINATION_IP:/path/to/BrightEat/
+rsync -avz --progress orderq_export_* user@DESTINATION_IP:/path/to/OrderQ/
 ```
 
 ## Import on Destination Node
 
 ```bash
-cd /path/to/BrightEat
+cd /path/to/OrderQ
 chmod +x scripts/import_data.sh
-./scripts/import_data.sh brighteat_export_YYYYMMDD_HHMMSS
+./scripts/import_data.sh orderq_export_YYYYMMDD_HHMMSS
 ```
 
 ## Update Configuration
@@ -43,7 +43,7 @@ chmod +x scripts/import_data.sh
 
 ```bash
 # Check database
-docker compose exec db psql -U postgres -d brighteat -c "SELECT COUNT(*) FROM orders_user;"
+docker compose exec db psql -U postgres -d orderq -c "SELECT COUNT(*) FROM orders_user;"
 
 # Test application
 curl http://NEW_IP:19991

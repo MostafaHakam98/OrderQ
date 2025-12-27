@@ -64,7 +64,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'BrightEat.urls'
+ROOT_URLCONF = 'OrderQ.urls'
 
 TEMPLATES = [
     {
@@ -81,7 +81,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'BrightEat.wsgi.application'
+WSGI_APPLICATION = 'OrderQ.wsgi.application'
 
 
 # Database
@@ -90,7 +90,7 @@ WSGI_APPLICATION = 'BrightEat.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME', 'brighteat'),
+        'NAME': os.environ.get('DB_NAME', 'orderq'),
         'USER': os.environ.get('DB_USER', 'postgres'),
         'PASSWORD': os.environ.get('DB_PASSWORD', 'postgres'),
         'HOST': os.environ.get('DB_HOST', 'localhost'),
@@ -207,7 +207,7 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 # Channels Configuration
-ASGI_APPLICATION = 'BrightEat.asgi.application'
+ASGI_APPLICATION = 'OrderQ.asgi.application'
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',

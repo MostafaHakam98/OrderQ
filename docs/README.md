@@ -1,6 +1,6 @@
 # Documentation
 
-This directory contains additional documentation for the BrightEat project.
+This directory contains additional documentation for the OrderQ project.
 
 ## Available Documentation
 
@@ -11,8 +11,8 @@ This directory contains additional documentation for the BrightEat project.
 ## Project Structure
 
 ```
-BrightEat/
-├── BrightEat/          # Django project settings
+OrderQ/
+├── OrderQ/             # Django project settings
 ├── orders/             # Main Django app
 ├── frontend/           # Vue.js frontend
 ├── mobile/             # Flutter mobile app

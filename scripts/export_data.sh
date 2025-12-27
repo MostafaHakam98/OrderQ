@@ -2,16 +2,16 @@
 
 # Script to export data from source node
 # Usage: ./export_data.sh [export_directory]
-# Example: ./export_data.sh /tmp/brighteat_export
+# Example: ./export_data.sh /tmp/orderq_export
 
 set -e
 
-EXPORT_DIR="${1:-./brighteat_export_$(date +%Y%m%d_%H%M%S)}"
+EXPORT_DIR="${1:-./orderq_export_$(date +%Y%m%d_%H%M%S)}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 echo "========================================="
-echo "BrightEat Data Export Script"
+echo "OrderQ Data Export Script"
 echo "========================================="
 echo "Export directory: $EXPORT_DIR"
 echo ""
@@ -35,11 +35,11 @@ DB_CONTAINER=$(docker compose ps -q db 2>/dev/null || echo "")
 
 if [ -n "$DB_CONTAINER" ]; then
     echo "Found database container: $DB_CONTAINER"
-    docker compose exec -T db pg_dump -U postgres brighteat > "$EXPORT_DIR/database/brighteat_dump.sql"
-    echo "✓ Database exported to $EXPORT_DIR/database/brighteat_dump.sql"
+    docker compose exec -T db pg_dump -U postgres orderq > "$EXPORT_DIR/database/orderq_dump.sql"
+    echo "✓ Database exported to $EXPORT_DIR/database/orderq_dump.sql"
 else
     echo "⚠ Database container not found. If using external database, export manually:"
-    echo "   pg_dump -h <HOST> -U postgres brighteat > $EXPORT_DIR/database/brighteat_dump.sql"
+    echo "   pg_dump -h <HOST> -U postgres orderq > $EXPORT_DIR/database/orderq_dump.sql"
 fi
 
 # Copy media files
@@ -81,7 +81,7 @@ cat > "$EXPORT_DIR/env_template.txt" << 'EOF'
 
 SECRET_KEY=your-secret-key-here
 DEBUG=False
-DB_NAME=brighteat
+DB_NAME=orderq
 DB_USER=postgres
 DB_PASSWORD=postgres
 DB_HOST=db
@@ -101,13 +101,13 @@ echo "✓ Environment template created at $EXPORT_DIR/env_template.txt"
 echo ""
 echo "Step 5: Creating migration README..."
 cat > "$EXPORT_DIR/README_MIGRATION.md" << 'EOF'
-# BrightEat Data Migration
+# OrderQ Data Migration
 
 This directory contains exported data from the source node.
 
 ## Contents
 
-- `database/brighteat_dump.sql` - PostgreSQL database dump
+- `database/orderq_dump.sql` - PostgreSQL database dump
 - `media/` - Media files (QR codes, uploaded images, etc.)
 - `redis_dump.rdb` - Redis data dump (optional)
 - `env_template.txt` - Environment variables template
@@ -120,17 +120,17 @@ This directory contains exported data from the source node.
 1. **Transfer this entire directory to the destination node:**
    ```bash
    # Using SCP (from source node)
-   scp -r brighteat_export_* user@DESTINATION_IP:/path/to/BrightEat/
+   scp -r orderq_export_* user@DESTINATION_IP:/path/to/OrderQ/
    
    # Or using rsync
-   rsync -avz brighteat_export_* user@DESTINATION_IP:/path/to/BrightEat/
+   rsync -avz orderq_export_* user@DESTINATION_IP:/path/to/OrderQ/
    ```
 
 2. **On the destination node, run the import script:**
    ```bash
-   cd /path/to/BrightEat
+   cd /path/to/OrderQ
    chmod +x scripts/import_data.sh
-   ./scripts/import_data.sh brighteat_export_*
+   ./scripts/import_data.sh orderq_export_*
    ```
 
 3. **Update environment variables:**
@@ -144,7 +144,7 @@ This directory contains exported data from the source node.
    ```
 
 5. **Verify the migration:**
-   - Check that the database has data: `docker compose exec db psql -U postgres -d brighteat -c "SELECT COUNT(*) FROM orders_user;"`
+   - Check that the database has data: `docker compose exec db psql -U postgres -d orderq -c "SELECT COUNT(*) FROM orders_user;"`
    - Check media files are accessible
    - Test the application
 
@@ -153,13 +153,13 @@ This directory contains exported data from the source node.
 ### Database:
 ```bash
 # On destination node
-docker compose exec -T db psql -U postgres brighteat < database/brighteat_dump.sql
+docker compose exec -T db psql -U postgres orderq < database/orderq_dump.sql
 ```
 
 ### Media Files:
 ```bash
 # Copy media files to the media directory
-cp -r media/* /path/to/BrightEat/media/
+cp -r media/* /path/to/OrderQ/media/
 ```
 
 ### Redis (optional):

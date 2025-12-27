@@ -84,7 +84,7 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(
                 f'\nMenu syncing is now scheduled to run every {interval_hours} hours.\n'
-                f'Make sure Celery Beat is running: celery -A BrightEat beat -l info'
+                f'Make sure Celery Beat is running: celery -A OrderQ beat -l info'
             )
         )
 

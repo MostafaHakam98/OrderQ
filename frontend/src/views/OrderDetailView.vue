@@ -1450,7 +1450,7 @@ async function deleteOrder() {
   const result = await ordersStore.deleteOrder(order.id)
   if (result.success) {
     alert('Order deleted successfully')
-    router.push('/orders')
+    router.replace('/orders')
   } else {
     alert('Failed to delete order: ' + (result.error?.error || result.error?.detail || JSON.stringify(result.error)))
     loading.value = false

@@ -141,8 +141,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   ),
                   const SizedBox(height: 8),
                   ElevatedButton(
-                    onPressed: () => context.pop(),
-                    child: const Text('Go Back'),
+                    onPressed: () => context.go('/orders'),
+                    child: const Text('Go to Orders'),
                   ),
                 ],
               ),
@@ -1467,7 +1467,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           backgroundColor: Colors.red,
                         ),
                       );
-                      context.pop();
+                      context.go('/orders');
                     } else if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(

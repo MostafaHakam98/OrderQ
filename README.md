@@ -278,7 +278,7 @@ To migrate data from one server/node to another:
 
 3. **Import on destination node:**
    ```bash
-   ./scripts/import_data.sh brighteat_export_YYYYMMDD_HHMMSS
+   ./scripts/import_data.sh orderq_export_YYYYMMDD_HHMMSS
    ```
 
 4. **Update configuration** with new IP address and restart services.

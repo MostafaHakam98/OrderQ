@@ -2,14 +2,14 @@
 
 # Script to import data to destination node
 # Usage: ./import_data.sh <export_directory>
-# Example: ./import_data.sh ./brighteat_export_20240101_120000
+# Example: ./import_data.sh ./orderq_export_20240101_120000
 
 set -e
 
 if [ -z "$1" ]; then
     echo "Error: Export directory not specified"
     echo "Usage: $0 <export_directory>"
-    echo "Example: $0 ./brighteat_export_20240101_120000"
+    echo "Example: $0 ./orderq_export_20240101_120000"
     exit 1
 fi
 
@@ -28,7 +28,7 @@ if [ ! -d "$EXPORT_DIR" ]; then
 fi
 
 echo "========================================="
-echo "BrightEat Data Import Script"
+echo "OrderQ Data Import Script"
 echo "========================================="
 echo "Import directory: $EXPORT_DIR"
 echo "Project root: $PROJECT_ROOT"
@@ -62,7 +62,7 @@ if [ -z "$DB_CONTAINER" ]; then
     exit 1
 fi
 
-DB_DUMP="$EXPORT_DIR/database/brighteat_dump.sql"
+DB_DUMP="$EXPORT_DIR/database/orderq_dump.sql"
 if [ ! -f "$DB_DUMP" ]; then
     echo "Error: Database dump not found: $DB_DUMP"
     exit 1
@@ -80,11 +80,11 @@ if [ "$confirm" != "yes" ]; then
 fi
 
 # Create database if it doesn't exist
-docker compose exec -T db psql -U postgres -c "DROP DATABASE IF EXISTS brighteat;" 2>/dev/null || true
-docker compose exec -T db psql -U postgres -c "CREATE DATABASE brighteat;" 2>/dev/null || true
+docker compose exec -T db psql -U postgres -c "DROP DATABASE IF EXISTS orderq;" 2>/dev/null || true
+docker compose exec -T db psql -U postgres -c "CREATE DATABASE orderq;" 2>/dev/null || true
 
 # Import the dump
-docker compose exec -T db psql -U postgres brighteat < "$DB_DUMP"
+docker compose exec -T db psql -U postgres orderq < "$DB_DUMP"
 echo "✓ Database imported successfully"
 
 # Import media files
