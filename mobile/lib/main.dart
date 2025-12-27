@@ -24,6 +24,7 @@ import 'screens/recommendations_screen.dart';
 import 'screens/restaurant_wheel_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/user_management_screen.dart';
+import 'screens/splash_screen.dart';
 import 'providers/notifications_provider.dart';
 import 'services/notification_service.dart';
 
@@ -132,8 +133,18 @@ class _MyAppState extends State<MyApp> {
 
   GoRouter _createRouter(bool isAuthenticated) {
     return GoRouter(
-      initialLocation: isAuthenticated ? '/' : '/login',
+      initialLocation: '/splash',
       routes: [
+        GoRoute(
+          path: '/splash',
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const SplashScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
+        ),
         GoRoute(
           path: '/login',
           pageBuilder: (context, state) => CustomTransitionPage(
@@ -152,6 +163,24 @@ class _MyAppState extends State<MyApp> {
             transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
             transitionDuration: Duration.zero,
             reverseTransitionDuration: Duration.zero,
+          ),
+        ),
+        GoRoute(
+          path: '/splash-transition',
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const SplashScreen(
+              duration: Duration(seconds: 1),
+              isTransition: true,
+            ),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: animation,
+                child: child,
+              );
+            },
+            transitionDuration: const Duration(milliseconds: 300),
+            reverseTransitionDuration: const Duration(milliseconds: 300),
           ),
         ),
         GoRoute(
@@ -313,18 +342,25 @@ class _MyAppState extends State<MyApp> {
         final isAuth = authProvider.isAuthenticated;
         final isManager = authProvider.isManager;
         final isAdmin = authProvider.isAdmin;
+        final isSplashRoute = state.uri.path == '/splash';
+        final isSplashTransitionRoute = state.uri.path == '/splash-transition';
         final isLoginRoute = state.uri.path == '/login';
         final isRegisterRoute = state.uri.path == '/register';
         final isUsersRoute = state.uri.path == '/users';
-        final requiresAuth = !isLoginRoute && !isRegisterRoute;
+        final requiresAuth = !isLoginRoute && !isRegisterRoute && !isSplashRoute && !isSplashTransitionRoute;
         final requiresManager = state.uri.path.startsWith('/restaurants');
         final requiresAdmin = isRegisterRoute || isUsersRoute;
+
+        // Allow splash screens to stay (they handle their own navigation)
+        if (isSplashRoute || isSplashTransitionRoute) {
+          return null;
+        }
 
         if (requiresAuth && !isAuth) {
           return '/login';
         }
         if (isAuth && isLoginRoute) {
-          return '/';
+          return '/splash-transition';
         }
         if (isAuth && isRegisterRoute && !isAdmin) {
           return '/';
@@ -338,6 +374,7 @@ class _MyAppState extends State<MyApp> {
         if (requiresAdmin && !isAdmin) {
           return '/';
         }
+        
         return null;
       },
     );

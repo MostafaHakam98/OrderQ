@@ -67,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       }
       // If user is authenticated, redirect to home (bypass login)
       if (authProvider.isAuthenticated && mounted) {
-        context.go('/');
+        context.go('/splash-transition');
       }
     });
   }
@@ -114,7 +114,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           await prefs.remove('remember_me');
         }
         
-        context.go('/');
+        context.go('/splash-transition');
       } else if (mounted) {
         final errorMessage = authProvider.lastError ?? 'Login failed. Please check your credentials.';
         ScaffoldMessenger.of(context).showSnackBar(

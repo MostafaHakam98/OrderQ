@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import '../providers/orders_provider.dart';
 import '../models/restaurant.dart';
 
@@ -116,40 +117,53 @@ class _RestaurantWheelScreenState extends State<RestaurantWheelScreen>
     });
 
     // Store the restaurant list for this spin to ensure consistency
+    // IMPORTANT: Use the exact same list order for both selection and drawing
     _currentSpinRestaurants = List.from(selectedRestaurants);
     
     // Random rotation (multiple full spins + random angle)
     final random = math.Random();
     final baseRotations = 5.0 + random.nextDouble() * 2; // 5-7 full rotations
     
-    // Pre-select a random restaurant
-    final selectedIndex = random.nextInt(_currentSpinRestaurants.length);
-    final restaurant = _currentSpinRestaurants[selectedIndex];
+    // Calculate a random final rotation angle
+    final randomFinalAngle = random.nextDouble() * 2 * math.pi;
+    _finalRotation = (baseRotations * 2 * math.pi) + randomFinalAngle;
     
-    // Calculate the angle to land on this restaurant
-    // Pointer is at top (pointing down, which is at angle -π/2 or 270°)
-    // WheelPainter draws segments starting from -π/2 (top), so:
-    // - Segment 0 starts at -π/2
-    // - Segment i starts at i * sectorSize - π/2
-    // - Segment i's center is at: i * sectorSize - π/2 + sectorSize/2
+    // Now calculate which segment will be at the pointer after this rotation
+    // Pointer is at -π/2 (top)
+    // After rotation, a point that was at angle α will be at angle α + rotation
+    // We want to find which segment's center is closest to -π/2 after rotation
+    
     final sectorSize = (2 * math.pi) / _currentSpinRestaurants.length;
     
-    // The selected segment's center angle (before rotation) is:
-    final segmentCenterAngle = selectedIndex * sectorSize - math.pi / 2 + sectorSize / 2;
+    // Calculate which segment center will be closest to -π/2 after rotation
+    // For each segment i, its center after rotation is: (i * sectorSize - π/2 + sectorSize/2 + _finalRotation) % (2π)
+    // We want to find the segment whose center is closest to -π/2 (or 3π/2, which is equivalent)
     
-    // We want the center to end up at -π/2 (where the pointer is)
-    // After rotating counter-clockwise by θ: segmentCenterAngle + θ = -π/2
-    // Therefore: θ = -π/2 - segmentCenterAngle
-    // Simplifying: θ = -π/2 - (selectedIndex * sectorSize - π/2 + sectorSize/2)
-    //              θ = -selectedIndex * sectorSize - sectorSize/2
-    //
-    // Since this is negative (clockwise), we convert to positive (counter-clockwise):
-    // θ = 2π - selectedIndex * sectorSize - sectorSize/2
-    //
-    // Add full rotations for visual effect:
-    final targetAngle = selectedIndex * sectorSize + sectorSize / 2;
-    _finalRotation = (baseRotations * 2 * math.pi) + (2 * math.pi - targetAngle);
-
+    int winningIndex = 0;
+    double minDistance = double.infinity;
+    const pointerAngle = -math.pi / 2;
+    
+    for (int i = 0; i < _currentSpinRestaurants.length; i++) {
+      // Segment i's center angle in initial position
+      final segmentCenter = i * sectorSize - math.pi / 2 + sectorSize / 2;
+      // After rotation
+      final rotatedCenter = (segmentCenter + _finalRotation) % (2 * math.pi);
+      // Normalize to [-π, π] for distance calculation
+      final normalizedCenter = rotatedCenter > math.pi ? rotatedCenter - 2 * math.pi : rotatedCenter;
+      // Calculate distance to pointer (accounting for wrap-around)
+      final distance = (normalizedCenter - pointerAngle).abs();
+      final wrapDistance = (2 * math.pi) - distance;
+      final minDist = distance < wrapDistance ? distance : wrapDistance;
+      
+      if (minDist < minDistance) {
+        minDistance = minDist;
+        winningIndex = i;
+      }
+    }
+    
+    // Select the restaurant that will be at the pointer
+    final restaurant = _currentSpinRestaurants[winningIndex];
+    
     _spinController.reset();
     _spinController.forward().then((_) {
       // Haptic feedback on completion
@@ -910,43 +924,39 @@ class WheelPainter extends CustomPainter {
 class PointerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.red[600]!
-      ..style = PaintingStyle.fill;
-
+    final centerX = size.width / 2;
+    
+    // Create a modern, clean triangle pointer
     final path = Path();
-    // Draw arrow pointing down
-    path.moveTo(25, 0); // Top center
-    path.lineTo(0, 30); // Bottom left
-    path.lineTo(10, 30); // Inner left
-    path.lineTo(10, 50); // Bottom left
-    path.lineTo(40, 50); // Bottom right
-    path.lineTo(40, 30); // Inner right
-    path.lineTo(50, 30); // Bottom right
+    // Simple downward-pointing triangle
+    path.moveTo(centerX, size.height); // Bottom point (tip)
+    path.lineTo(0, size.height * 0.3); // Top left
+    path.lineTo(size.width, size.height * 0.3); // Top right
     path.close();
-
+    
+    // Main pointer with solid color
+    final paint = Paint()
+      ..color = Colors.orange[800]!
+      ..style = PaintingStyle.fill;
+    
     canvas.drawPath(path, paint);
     
-    // Add shadow
+    // Add border for definition
+    final borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5;
+    
+    canvas.drawPath(path, borderPaint);
+    
+    // Add subtle shadow for depth
     final shadowPaint = Paint()
-      ..color = Colors.black.withOpacity(0.3)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+      ..color = Colors.black.withOpacity(0.2)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
     
     final shadowPath = Path();
-    shadowPath.addPath(path, const Offset(2, 2));
+    shadowPath.addPath(path, const Offset(0, 2));
     canvas.drawPath(shadowPath, shadowPaint);
-    
-    // Draw highlight
-    final highlightPaint = Paint()
-      ..color = Colors.red[300]!.withOpacity(0.5)
-      ..style = PaintingStyle.fill;
-    
-    final highlightPath = Path();
-    highlightPath.moveTo(25, 5);
-    highlightPath.lineTo(15, 25);
-    highlightPath.lineTo(35, 25);
-    highlightPath.close();
-    canvas.drawPath(highlightPath, highlightPaint);
   }
 
   @override
