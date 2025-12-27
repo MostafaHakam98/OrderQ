@@ -23,11 +23,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 
 class IsManagerOrReadOnly(permissions.BasePermission):
-    """Permission for managers to edit, others can only read"""
+    """Permission for managers and admins to edit, others can only read"""
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
-        return request.user.is_authenticated and request.user.role == 'manager'
+        return request.user.is_authenticated and request.user.role in ['manager', 'admin']
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -44,6 +44,46 @@ class UserViewSet(viewsets.ModelViewSet):
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
+    
+    def update(self, request, *args, **kwargs):
+        """Override update to check permissions for role changes"""
+        instance = self.get_object()
+        
+        # Check if role is being changed
+        if 'role' in request.data:
+            # Only admins can change roles
+            if request.user.role != 'admin':
+                return Response(
+                    {'error': 'Only administrators can change user roles'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Prevent admins from removing their own admin role
+            if instance.id == request.user.id and request.data.get('role') != 'admin':
+                return Response(
+                    {'error': 'You cannot remove your own administrator role'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Regular users can only update their own profile (except role)
+        if request.user.role not in ['admin', 'manager'] and instance.id != request.user.id:
+            return Response(
+                {'error': 'You can only update your own profile'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Only admins can change roles
+        if request.user.role != 'admin' and 'role' in request.data:
+            return Response(
+                {'error': 'You cannot change user roles. Only administrators can change roles.'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        return super().update(request, *args, **kwargs)
+    
+    def partial_update(self, request, *args, **kwargs):
+        """Override partial_update to check permissions for role changes"""
+        return self.update(request, *args, **kwargs)
     
     @action(detail=False, methods=['get'])
     def me(self, request):
@@ -82,10 +122,10 @@ class RegisterView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def post(self, request):
-        # Only managers/admins can create accounts
-        if request.user.role != 'manager':
+        # Only admins can create accounts
+        if request.user.role != 'admin':
             return Response(
-                {'error': 'Only managers can create user accounts'}, 
+                {'error': 'Only administrators can create user accounts'}, 
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -718,7 +758,7 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def pending_payments(self, request):
-        """Get all orders where the user has pending payments"""
+        """Get all orders where the user has pending payments (payments user owes)"""
         payments = Payment.objects.filter(
             user=request.user,
             is_paid=False,
@@ -738,13 +778,38 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
                 'amount': float(payment.amount),
                 'payment_id': payment.id,
                 'order_status': payment.order.status,
+                'payment_type': 'owed_by_me',  # User owes this payment
+            })
+        
+        return Response(result)
+    
+    @action(detail=False, methods=['get'])
+    def pending_payments_to_me(self, request):
+        """Get all orders where others owe money to the user (when user is collector)"""
+        payments = Payment.objects.filter(
+            order__collector=request.user,
+            is_paid=False,
+            order__status__in=['LOCKED', 'ORDERED', 'CLOSED']
+        ).exclude(user=request.user).select_related('order', 'order__restaurant', 'user')
+        
+        result = []
+        for payment in payments:
+            result.append({
+                'order_id': payment.order.id,
+                'order_code': payment.order.code,
+                'restaurant_name': payment.order.restaurant.name,
+                'payer_name': payment.user.username,
+                'amount': float(payment.amount),
+                'payment_id': payment.id,
+                'order_status': payment.order.status,
+                'payment_type': 'owed_to_me',  # Others owe this to user
             })
         
         return Response(result)
     
     @action(detail=False, methods=['get'])
     def monthly_report(self, request):
-        """Monthly report: total spend, collector count, unpaid incidents"""
+        """Monthly report: comprehensive dashboard with multiple metrics"""
         user_id = request.query_params.get('user_id', request.user.id)
         if request.user.role != 'manager' and str(request.user.id) != str(user_id):
             return Response(
@@ -776,12 +841,97 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
             order__created_at__gte=start_of_month
         ).count()
         
+        # Total amount collected (when user was collector)
+        orders_collected = CollectionOrder.objects.filter(
+            collector=user,
+            created_at__gte=start_of_month
+        )
+        total_collected = Payment.objects.filter(
+            order__in=orders_collected,
+            order__created_at__gte=start_of_month
+        ).exclude(user=user).aggregate(total=Sum('amount'))['total'] or 0
+        
+        # Total orders participated in (as participant, not necessarily collector)
+        orders_participated = CollectionOrder.objects.filter(
+            items__user=user,
+            created_at__gte=start_of_month
+        ).distinct()
+        total_orders_participated = orders_participated.count()
+        
+        # Average order value (for orders user participated in)
+        avg_order_value = 0
+        if total_orders_participated > 0:
+            total_order_values = sum(order.get_total_cost() for order in orders_participated)
+            avg_order_value = total_order_values / total_orders_participated
+        
+        # Total fees paid (delivery + tip + service)
+        total_fees_paid = Payment.objects.filter(
+            user=user,
+            order__created_at__gte=start_of_month
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        # Subtract item costs to get fees only
+        total_item_costs = sum(
+            item.total_price 
+            for order in orders_participated 
+            for item in order.items.filter(user=user)
+        )
+        total_fees_only = total_fees_paid - total_item_costs
+        
+        # Payment completion rate
+        total_payments = Payment.objects.filter(
+            user=user,
+            order__status__in=['LOCKED', 'ORDERED', 'CLOSED'],
+            order__created_at__gte=start_of_month
+        ).count()
+        paid_payments = Payment.objects.filter(
+            user=user,
+            is_paid=True,
+            order__status__in=['LOCKED', 'ORDERED', 'CLOSED'],
+            order__created_at__gte=start_of_month
+        ).count()
+        payment_completion_rate = (paid_payments / total_payments * 100) if total_payments > 0 else 100
+        
+        # Most ordered restaurant
+        restaurant_counts = CollectionOrder.objects.filter(
+            items__user=user,
+            created_at__gte=start_of_month
+        ).values('restaurant__name').annotate(
+            order_count=Count('id', distinct=True)
+        ).order_by('-order_count')
+        most_ordered_restaurant = restaurant_counts[0]['restaurant__name'] if restaurant_counts else None
+        most_ordered_restaurant_count = restaurant_counts[0]['order_count'] if restaurant_counts else 0
+        
+        # Total pending amount (unpaid)
+        total_pending = Payment.objects.filter(
+            user=user,
+            is_paid=False,
+            order__status__in=['LOCKED', 'ORDERED', 'CLOSED'],
+            order__created_at__gte=start_of_month
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        
+        # Total amount owed to user (when user is collector and others haven't paid)
+        total_owed_to_user = Payment.objects.filter(
+            order__collector=user,
+            is_paid=False,
+            order__status__in=['LOCKED', 'ORDERED', 'CLOSED'],
+            order__created_at__gte=start_of_month
+        ).exclude(user=user).aggregate(total=Sum('amount'))['total'] or 0
+        
         return Response({
             'user': UserSerializer(user).data,
             'month': start_of_month.strftime('%B %Y'),
             'total_spend': float(total_spend),
             'collector_count': collector_count,
-            'unpaid_count': unpaid_count
+            'unpaid_count': unpaid_count,
+            'total_collected': float(total_collected),
+            'total_orders_participated': total_orders_participated,
+            'avg_order_value': float(avg_order_value),
+            'total_fees_paid': float(total_fees_only),
+            'payment_completion_rate': float(payment_completion_rate),
+            'most_ordered_restaurant': most_ordered_restaurant,
+            'most_ordered_restaurant_count': most_ordered_restaurant_count,
+            'total_pending': float(total_pending),
+            'total_owed_to_user': float(total_owed_to_user),
         })
     
     def _calculate_payments(self, order):

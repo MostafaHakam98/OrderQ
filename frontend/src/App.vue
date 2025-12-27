@@ -7,61 +7,69 @@
             <router-link to="/" class="flex items-center px-2 py-2 text-xl font-bold text-blue-600 dark:text-blue-400">
               OrderQ
             </router-link>
-            <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+            <div class="hidden sm:ml-6 sm:flex sm:space-x-4">
               <router-link
                 to="/"
-                class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
+                class="inline-flex items-center px-2 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
                 active-class="border-blue-500 dark:border-blue-400 text-gray-900 dark:text-white"
               >
                 Home
               </router-link>
               <router-link
                 to="/orders"
-                class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
+                class="inline-flex items-center px-2 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
                 active-class="border-blue-500 dark:border-blue-400 text-gray-900 dark:text-white"
               >
                 Orders
               </router-link>
               <router-link
-                v-if="authStore.isManager"
-                to="/restaurants"
-                class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
-                active-class="border-blue-500 dark:border-blue-400 text-gray-900 dark:text-white"
-              >
-                Restaurants
-              </router-link>
-              <router-link
-                v-if="authStore.isManager"
-                to="/register"
-                class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
-                active-class="border-blue-500 dark:border-blue-400 text-gray-900 dark:text-white"
-              >
-                Create User
-              </router-link>
-              <router-link
                 to="/reports"
-                class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
+                class="inline-flex items-center px-2 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
                 active-class="border-blue-500 dark:border-blue-400 text-gray-900 dark:text-white"
               >
                 Reports
               </router-link>
               <router-link
                 to="/pending-payments"
-                class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
+                class="inline-flex items-center px-2 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
                 active-class="border-blue-500 dark:border-blue-400 text-gray-900 dark:text-white"
               >
-                Pending Payments
+                Payments
               </router-link>
               <router-link
                 to="/recommendations"
-                class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
+                class="inline-flex items-center px-2 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
                 active-class="border-blue-500 dark:border-blue-400 text-gray-900 dark:text-white"
               >
-                Recommendations
+                Feedback
+              </router-link>
+              <router-link
+                v-if="authStore.isManager || authStore.isAdmin"
+                to="/restaurants"
+                class="inline-flex items-center px-2 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
+                active-class="border-blue-500 dark:border-blue-400 text-gray-900 dark:text-white"
+              >
+                Restaurants
+              </router-link>
+              <router-link
+                v-if="authStore.isAdmin"
+                to="/register"
+                class="inline-flex items-center px-2 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
+                active-class="border-blue-500 dark:border-blue-400 text-gray-900 dark:text-white"
+              >
+                Create User
+              </router-link>
+              <router-link
+                v-if="authStore.isAdmin"
+                to="/users"
+                class="inline-flex items-center px-2 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
+                active-class="border-blue-500 dark:border-blue-400 text-gray-900 dark:text-white"
+              >
+                User Management
               </router-link>
               <router-link
                 to="/profile"
-                class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
+                class="inline-flex items-center px-2 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
                 active-class="border-blue-500 dark:border-blue-400 text-gray-900 dark:text-white"
               >
                 Profile

@@ -10,6 +10,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!token.value)
   const isManager = computed(() => user.value?.role === 'manager')
+  const isAdmin = computed(() => user.value?.role === 'admin')
 
   async function login(usernameOrEmail, password) {
     try {
@@ -110,6 +111,7 @@ export const useAuthStore = defineStore('auth', () => {
     token,
     isAuthenticated,
     isManager,
+    isAdmin,
     login,
     register,
     logout,

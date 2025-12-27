@@ -8,6 +8,7 @@ import string
 class User(AbstractUser):
     """Extended user model with role"""
     ROLE_CHOICES = [
+        ('admin', 'Administrator'),
         ('manager', 'Menu Manager'),
         ('user', 'Normal User'),
     ]
