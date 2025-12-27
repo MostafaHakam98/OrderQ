@@ -135,76 +135,166 @@ class _MyAppState extends State<MyApp> {
       routes: [
         GoRoute(
           path: '/login',
-          builder: (context, state) => const LoginScreen(),
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const LoginScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
         ),
         GoRoute(
           path: '/register',
-          builder: (context, state) => const RegisterScreen(),
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const RegisterScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
         ),
         GoRoute(
           path: '/',
-          builder: (context, state) => const HomeScreen(),
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const HomeScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
         ),
         GoRoute(
           path: '/orders',
-          builder: (context, state) => const OrdersScreen(),
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const OrdersScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
         ),
         GoRoute(
           path: '/orders/create',
-          builder: (context, state) {
+          pageBuilder: (context, state) {
             // Extract restaurant ID from query parameters if present
             final restaurantId = state.uri.queryParameters['restaurant'];
-            return CreateOrderScreen(initialRestaurantId: restaurantId != null ? int.tryParse(restaurantId) : null);
+            return CustomTransitionPage(
+              key: state.pageKey,
+              child: CreateOrderScreen(initialRestaurantId: restaurantId != null ? int.tryParse(restaurantId) : null),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+            );
           },
         ),
         GoRoute(
           path: '/orders/:code',
-          builder: (context, state) {
+          pageBuilder: (context, state) {
             final code = state.pathParameters['code'] ?? '';
-            return OrderDetailScreen(orderCode: code.toUpperCase());
+            return CustomTransitionPage(
+              key: state.pageKey,
+              child: OrderDetailScreen(orderCode: code.toUpperCase()),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+            );
           },
         ),
         GoRoute(
           path: '/join/:code',
-          builder: (context, state) {
+          pageBuilder: (context, state) {
             final code = state.pathParameters['code'] ?? '';
-            return JoinOrderScreen(orderCode: code.toUpperCase());
+            return CustomTransitionPage(
+              key: state.pageKey,
+              child: JoinOrderScreen(orderCode: code.toUpperCase()),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+            );
           },
         ),
         GoRoute(
           path: '/restaurants',
-          builder: (context, state) => const RestaurantsScreen(),
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const RestaurantsScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
         ),
         GoRoute(
           path: '/wheel',
-          builder: (context, state) => const RestaurantWheelScreen(),
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const RestaurantWheelScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
         ),
         GoRoute(
           path: '/restaurants/:restaurantId/menus',
-          builder: (context, state) {
+          pageBuilder: (context, state) {
             final restaurantId = int.parse(state.pathParameters['restaurantId'] ?? '0');
-            return MenuManagementScreen(restaurantId: restaurantId);
+            return CustomTransitionPage(
+              key: state.pageKey,
+              child: MenuManagementScreen(restaurantId: restaurantId),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+            );
           },
         ),
         GoRoute(
           path: '/reports',
-          builder: (context, state) => const ReportsScreen(),
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const ReportsScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
         ),
         GoRoute(
           path: '/profile',
-          builder: (context, state) => const ProfileScreen(),
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const ProfileScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
         ),
         GoRoute(
           path: '/pending-payments',
-          builder: (context, state) => const PendingPaymentsScreen(),
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const PendingPaymentsScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
         ),
         GoRoute(
           path: '/recommendations',
-          builder: (context, state) => const RecommendationsScreen(),
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const RecommendationsScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
         ),
         GoRoute(
           path: '/notifications',
-          builder: (context, state) => const NotificationsScreen(),
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const NotificationsScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
         ),
       ],
       redirect: (context, state) {

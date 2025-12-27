@@ -26,6 +26,7 @@ class _RestaurantWheelScreenState extends State<RestaurantWheelScreen>
   Set<int> _selectedRestaurantIds = {};
   List<Restaurant> _availableRestaurants = [];
   double _finalRotation = 0.0;
+  List<Restaurant> _currentSpinRestaurants = []; // Restaurants used for current spin
   List<Restaurant> _pickHistory = []; // History of recent picks
   bool _isRestaurantListExpanded = false; // Track expansion state
 
@@ -114,13 +115,16 @@ class _RestaurantWheelScreenState extends State<RestaurantWheelScreen>
       _selectedRestaurant = null;
     });
 
+    // Store the restaurant list for this spin to ensure consistency
+    _currentSpinRestaurants = List.from(selectedRestaurants);
+    
     // Random rotation (multiple full spins + random angle)
     final random = math.Random();
     final baseRotations = 5.0 + random.nextDouble() * 2; // 5-7 full rotations
     
     // Pre-select a random restaurant
-    final selectedIndex = random.nextInt(selectedRestaurants.length);
-    final restaurant = selectedRestaurants[selectedIndex];
+    final selectedIndex = random.nextInt(_currentSpinRestaurants.length);
+    final restaurant = _currentSpinRestaurants[selectedIndex];
     
     // Calculate the angle to land on this restaurant
     // Pointer is at top (pointing down, which is at angle -π/2 or 270°)
@@ -128,28 +132,23 @@ class _RestaurantWheelScreenState extends State<RestaurantWheelScreen>
     // - Segment 0 starts at -π/2
     // - Segment i starts at i * sectorSize - π/2
     // - Segment i's center is at: i * sectorSize - π/2 + sectorSize/2
-    final sectorSize = (2 * math.pi) / selectedRestaurants.length;
+    final sectorSize = (2 * math.pi) / _currentSpinRestaurants.length;
     
-    // Transform.rotate rotates COUNTER-CLOCKWISE for positive angles
     // The selected segment's center angle (before rotation) is:
-    // selectedIndex * sectorSize - π/2 + sectorSize/2
-    // After rotating counter-clockwise by θ, it becomes:
-    // (selectedIndex * sectorSize - π/2 + sectorSize/2) + θ
-    // We want this to equal -π/2 (where the pointer is)
-    // So: (selectedIndex * sectorSize - π/2 + sectorSize/2) + θ = -π/2
-    // Therefore: θ = -selectedIndex * sectorSize - sectorSize/2
-    // 
-    // To get a positive rotation, we add full rotations:
-    // θ = (baseRotations * 2 * π) - (selectedIndex * sectorSize) - (sectorSize / 2)
+    final segmentCenterAngle = selectedIndex * sectorSize - math.pi / 2 + sectorSize / 2;
+    
+    // We want the center to end up at -π/2 (where the pointer is)
+    // After rotating counter-clockwise by θ: segmentCenterAngle + θ = -π/2
+    // Therefore: θ = -π/2 - segmentCenterAngle
+    // Simplifying: θ = -π/2 - (selectedIndex * sectorSize - π/2 + sectorSize/2)
+    //              θ = -selectedIndex * sectorSize - sectorSize/2
+    //
+    // Since this is negative (clockwise), we convert to positive (counter-clockwise):
+    // θ = 2π - selectedIndex * sectorSize - sectorSize/2
+    //
+    // Add full rotations for visual effect:
     final targetAngle = selectedIndex * sectorSize + sectorSize / 2;
-    
-    // Subtract target angle to rotate counter-clockwise to align with pointer
-    _finalRotation = (baseRotations * 2 * math.pi) - targetAngle;
-    
-    // Ensure positive rotation by adding 2π if needed
-    while (_finalRotation < 0) {
-      _finalRotation += 2 * math.pi;
-    }
+    _finalRotation = (baseRotations * 2 * math.pi) + (2 * math.pi - targetAngle);
 
     _spinController.reset();
     _spinController.forward().then((_) {
@@ -347,10 +346,14 @@ class _RestaurantWheelScreenState extends State<RestaurantWheelScreen>
                                 child: AnimatedBuilder(
                                   animation: _rotationAnimation,
                                   builder: (context, child) {
-                                    final selectedRestaurants = _availableRestaurants
-                                        .where((r) =>
-                                            _selectedRestaurantIds.contains(r.id))
-                                        .toList();
+                                    // Use the stored restaurant list for current spin, or current selection if not spinning
+                                    final selectedRestaurants = _isSpinning 
+                                        ? _currentSpinRestaurants
+                                        : _availableRestaurants
+                                            .where((r) =>
+                                                _selectedRestaurantIds.contains(r.id))
+                                            .toList();
+                                    
                                     if (selectedRestaurants.isEmpty) {
                                       return const SizedBox(
                                         width: 300,

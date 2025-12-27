@@ -1,6 +1,6 @@
 {
-    "name": "orderq_mobile",
-    "short_name": "orderq_mobile",
+    "name": "OrderQ",
+    "short_name": "OrderQ",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
