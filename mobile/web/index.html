@@ -18,21 +18,102 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="OrderQ - Your internal food ordering portal. Order together, eat together.">
 
-  <!-- iOS meta tags & icons -->
+  <!-- PWA meta tags -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="OrderQ">
+  <meta name="theme-color" content="#0175C2">
+  
+  <!-- iOS icons -->
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="icons/Icon-512.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
   <title>OrderQ</title>
   <link rel="manifest" href="manifest.json">
+  
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0175C2;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    .loading {
+      color: white;
+      text-align: center;
+    }
+    .error {
+      color: white;
+      text-align: center;
+      padding: 20px;
+      max-width: 600px;
+    }
+    .error h1 {
+      font-size: 24px;
+      margin-bottom: 16px;
+    }
+    .error pre {
+      background: rgba(0,0,0,0.3);
+      padding: 12px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 12px;
+      text-align: left;
+    }
+  </style>
 </head>
 <body>
+  <div class="loading" id="loading">
+    <h1>Loading OrderQ...</h1>
+    <p>Please wait while the app initializes</p>
+  </div>
+  
+  <div class="error" id="error" style="display: none;">
+    <h1>Error Loading App</h1>
+    <p id="error-message"></p>
+    <pre id="error-details"></pre>
+  </div>
+  
+  <script>
+    // Error handling
+    window.addEventListener('error', function(e) {
+      console.error('Global error:', e);
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error').style.display = 'block';
+      document.getElementById('error-message').textContent = e.message || 'An error occurred while loading the app';
+      document.getElementById('error-details').textContent = e.filename + ':' + e.lineno + '\n' + e.error?.stack || '';
+    });
+    
+    window.addEventListener('unhandledrejection', function(e) {
+      console.error('Unhandled promise rejection:', e);
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error').style.display = 'block';
+      document.getElementById('error-message').textContent = 'Promise rejection: ' + (e.reason?.message || e.reason || 'Unknown error');
+      document.getElementById('error-details').textContent = e.reason?.stack || '';
+    });
+    
+    // Hide loading after Flutter loads (with timeout)
+    setTimeout(function() {
+      var loading = document.getElementById('loading');
+      if (loading && loading.style.display !== 'none') {
+        // App might still be loading, but hide after 10 seconds
+        console.log('App taking longer than expected to load...');
+      }
+    }, 10000);
+  </script>
+  
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

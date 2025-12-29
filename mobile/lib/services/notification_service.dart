@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
@@ -13,6 +14,13 @@ class NotificationService {
 
   Future<void> initialize() async {
     if (_initialized) return;
+    
+    // Skip initialization on web - local notifications don't work on web
+    if (kIsWeb) {
+      _initialized = true;
+      print('⚠️ NotificationService: Skipping initialization on web platform');
+      return;
+    }
 
     // Initialize timezone
     tz.initializeTimeZones();
@@ -58,6 +66,13 @@ class NotificationService {
     if (!_initialized) {
       await initialize();
     }
+    
+    // Skip showing notifications on web - use browser notifications instead if needed
+    if (kIsWeb) {
+      print('📱 Notification (web): ${notification.title} - ${notification.body}');
+      // On web, you could use browser notifications here if needed
+      return;
+    }
 
     final androidDetails = AndroidNotificationDetails(
       'orderq_channel',
@@ -96,6 +111,12 @@ class NotificationService {
     if (!_initialized) {
       await initialize();
     }
+    
+    // Skip scheduling notifications on web
+    if (kIsWeb) {
+      print('📱 Scheduled notification (web): ${notification.title} - ${notification.body}');
+      return;
+    }
 
     final androidDetails = AndroidNotificationDetails(
       'orderq_channel',
@@ -132,10 +153,12 @@ class NotificationService {
   }
 
   Future<void> cancelNotification(String notificationId) async {
+    if (kIsWeb) return;
     await _notifications.cancel(notificationId.hashCode);
   }
 
   Future<void> cancelAllNotifications() async {
+    if (kIsWeb) return;
     await _notifications.cancelAll();
   }
 

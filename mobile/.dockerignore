@@ -1,0 +1,45 @@
+# Build artifacts
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+# Note: pubspec.lock is needed for Docker build, so don't exclude it
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+test/
+
+# Platform specific
+android/
+ios/
+linux/
+windows/
+macos/
+
+# Other
+*.log
+*.swp
+*.swo
+*~
+

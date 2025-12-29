@@ -1,9 +1,12 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class AppConfig {
   // Backend server configuration
   // For production server (accessible from internet):
   static const String productionUrl = 'http://51.20.151.57:19992/api';
+  
+  // For local network (when PWA is accessed from same network):
+  static const String localNetworkUrl = 'http://192.168.100.26:19992/api';
   
   // For Android emulator (use 10.0.2.2 to access host machine):
   static const String androidEmulatorUrl = 'http://10.0.2.2:19992/api';
@@ -13,18 +16,15 @@ class AppConfig {
   
   // Get the appropriate URL based on platform
   static String get apiBaseUrl {
-    // Check if running on Android emulator
-    if (Platform.isAndroid) {
-      // Try to detect if we're on emulator (this is a simple check)
-      // For production, use the production URL
-      // For emulator testing, you can manually change this to androidEmulatorUrl
-      return productionUrl;
-    } else if (Platform.isIOS) {
-      // For iOS, check if simulator or device
-      // Simulator can use localhost, device needs production URL
+    // Web platform - use production URL (or local network if on same network)
+    if (kIsWeb) {
+      // For web/PWA, use production URL
+      // If accessing from local network, you can change this to localNetworkUrl
       return productionUrl;
     }
-    // Default to production
+    
+    // Mobile platforms - default to production
+    // Platform checks are not needed since we already handle web above
     return productionUrl;
   }
   
@@ -33,4 +33,3 @@ class AppConfig {
   // static String get apiBaseUrl => iosSimulatorUrl;     // For iOS simulator
   // static String get apiBaseUrl => productionUrl;       // For production/physical device
 }
-

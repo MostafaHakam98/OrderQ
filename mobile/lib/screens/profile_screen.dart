@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
-import 'dart:io';
+import 'dart:typed_data';
 import '../providers/auth_provider.dart';
 import '../providers/orders_provider.dart';
 import '../providers/theme_provider.dart';
@@ -19,7 +20,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _instapayLinkController = TextEditingController();
-  File? _selectedQrImage;
+  XFile? _selectedQrImage; // Use XFile for both web and mobile
   String? _currentQrCodeUrl;
   bool _isLoading = false;
 
@@ -47,7 +48,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     
     if (pickedFile != null) {
       setState(() {
-        _selectedQrImage = File(pickedFile.path);
+        _selectedQrImage = pickedFile; // XFile works on both platforms
       });
     }
   }
@@ -80,9 +81,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (_selectedQrImage != null) {
         // If we have an image, use FormData
         formData = FormData.fromMap(baseData);
+        
+        // XFile works on both web and mobile
         formData.files.add(MapEntry(
           'instapay_qr_code',
-          await MultipartFile.fromFile(_selectedQrImage!.path),
+          await MultipartFile.fromFile(
+            _selectedQrImage!.path,
+            filename: _selectedQrImage!.name,
+          ),
         ));
         
         await ordersProvider.ordersService.apiService.updateUser(
@@ -389,10 +395,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       if (_selectedQrImage != null) ...[
                         const SizedBox(height: 8),
-                        Image.file(
-                          _selectedQrImage!,
-                          height: 150,
-                          fit: BoxFit.contain,
+                        FutureBuilder<Uint8List>(
+                          future: _selectedQrImage!.readAsBytes(),
+                          builder: (context, snapshot) {
+                            if (snapshot.hasData) {
+                              return Image.memory(
+                                snapshot.data!,
+                                height: 150,
+                                fit: BoxFit.contain,
+                              );
+                            }
+                            return const SizedBox(
+                              height: 150,
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          },
                         ),
                       ] else if (_currentQrCodeUrl != null && _currentQrCodeUrl!.isNotEmpty) ...[
                         const SizedBox(height: 8),
