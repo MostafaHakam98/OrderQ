@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/notification.dart';
 import '../models/order.dart';
 import '../services/notification_service.dart';
 import '../services/notifications_websocket_service.dart';
+import 'auth_provider.dart';
 
 class NotificationsProvider extends ChangeNotifier {
   final NotificationService _notificationService = NotificationService();
   final List<AppNotification> _notifications = [];
   bool _isLoading = false;
   NotificationsWebSocketService? _wsService;
+  BuildContext? _context;
 
   List<AppNotification> get notifications => List.unmodifiable(_notifications);
   List<AppNotification> get unreadNotifications =>
@@ -20,7 +23,8 @@ class NotificationsProvider extends ChangeNotifier {
 
   NotificationsProvider() {
     _loadNotifications();
-    _initializeWebSocket();
+    // Don't initialize WebSocket in constructor - wait for explicit connect call
+    // This ensures user is authenticated and context is available
   }
 
   Future<void> _initializeWebSocket() async {
@@ -28,26 +32,65 @@ class NotificationsProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('access_token');
       
+      print('🔌 Initializing notifications WebSocket...');
+      print('🔌 Token exists: ${token != null && token.isNotEmpty}');
+      
       // Only connect if user is authenticated
       if (token != null && token.isNotEmpty) {
+        // Disconnect existing connection if any
+        if (_wsService != null) {
+          print('🔌 Disconnecting existing WebSocket connection');
+          _wsService?.disconnect();
+        }
+        
         _wsService = NotificationsWebSocketService(prefs);
         _wsService!.connect((order) async {
+          print('📥 Received new_order event in notifications provider');
+          print('📥 Order code: ${order.code}, Collector ID: ${order.collector?.id}');
+          
           // Handle new order notification
-          // Check if we should notify (don't notify if order is private and user doesn't have access)
-          // For now, we'll notify for all new orders - the backend will handle access control
+          // Don't notify if the current user created the order themselves
+          // We need to check the current user from AuthProvider
+          if (_context != null) {
+            try {
+              final authProvider = Provider.of<AuthProvider>(_context!, listen: false);
+              final currentUserId = authProvider.user?.id;
+              
+              print('📥 Current user ID: $currentUserId');
+              
+              // Skip notification if user created the order themselves
+              if (currentUserId != null && order.collector?.id == currentUserId) {
+                print('📱 Skipping notification for order created by current user');
+                return;
+              }
+            } catch (e) {
+              print('❌ Error checking current user: $e');
+              // Continue with notification if we can't check
+            }
+          } else {
+            print('⚠️ No context available to check current user, showing notification anyway');
+          }
+          
+          print('📱 Showing notification for order: ${order.code}');
+          // Show notification for orders created by others
           await notifyOrderCreated(
             orderCode: order.code,
             restaurantName: order.restaurant.name,
             orderId: order.id.toString(),
           );
         });
+        print('✅ Notifications WebSocket service initialized');
+      } else {
+        print('⚠️ Cannot initialize WebSocket: No access token');
       }
     } catch (e) {
-      print('Error initializing notifications WebSocket: $e');
+      print('❌ Error initializing notifications WebSocket: $e');
+      print('❌ Stack trace: ${StackTrace.current}');
     }
   }
 
-  void connectWebSocket() {
+  void connectWebSocket([BuildContext? context]) {
+    _context = context;
     _initializeWebSocket();
   }
 

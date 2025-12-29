@@ -47,31 +47,42 @@ def broadcast_new_order(order):
     Broadcast new order creation to all connected WebSocket clients via the general notifications channel
     This allows all users to be notified when a new order is created, regardless of which device created it
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     channel_layer = get_channel_layer()
     if not channel_layer:
+        logger.warning("Channel layer not configured, cannot broadcast new order")
         return  # Channels not configured
     
-    # Refresh order from database with all related data
-    from .models import CollectionOrder
-    refreshed_order = CollectionOrder.objects.prefetch_related(
-        Prefetch('items', queryset=OrderItem.objects.select_related('user', 'menu_item').order_by('-created_at')),
-        Prefetch('payments', queryset=Payment.objects.select_related('user').order_by('-created_at')),
-        'assigned_users'
-    ).select_related('restaurant', 'menu', 'collector').get(id=order.id)
-    
-    # Serialize order data
-    serializer = CollectionOrderSerializer(refreshed_order)
-    order_data = serializer.data
-    
-    # Broadcast to the general notifications group
-    async_to_sync(channel_layer.group_send)(
-        'notifications',
-        {
-            'type': 'new_order',
-            'order': order_data
-        }
-    )
-    
-    # Also broadcast to the specific order's room group
-    broadcast_order_update(order)
+    try:
+        # Refresh order from database with all related data
+        from .models import CollectionOrder
+        refreshed_order = CollectionOrder.objects.prefetch_related(
+            Prefetch('items', queryset=OrderItem.objects.select_related('user', 'menu_item').order_by('-created_at')),
+            Prefetch('payments', queryset=Payment.objects.select_related('user').order_by('-created_at')),
+            'assigned_users'
+        ).select_related('restaurant', 'menu', 'collector').get(id=order.id)
+        
+        # Serialize order data
+        serializer = CollectionOrderSerializer(refreshed_order)
+        order_data = serializer.data
+        
+        logger.info(f"Broadcasting new order {order.code} (ID: {order.id}) to notifications channel")
+        
+        # Broadcast to the general notifications group
+        async_to_sync(channel_layer.group_send)(
+            'notifications',
+            {
+                'type': 'new_order',
+                'order': order_data
+            }
+        )
+        
+        logger.info(f"Successfully broadcast new order {order.code} to notifications channel")
+        
+        # Also broadcast to the specific order's room group
+        broadcast_order_update(order)
+    except Exception as e:
+        logger.error(f"Error broadcasting new order {order.id}: {e}", exc_info=True)
 

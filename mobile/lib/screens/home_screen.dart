@@ -26,6 +26,13 @@ class _HomeScreenState extends State<HomeScreen> {
       ordersProvider.fetchRestaurants();
       ordersProvider.fetchOrders();
       ordersProvider.fetchPendingPayments();
+      
+      // Ensure notifications WebSocket is connected
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (authProvider.isAuthenticated) {
+        final notificationsProvider = Provider.of<NotificationsProvider>(context, listen: false);
+        notificationsProvider.connectWebSocket(context);
+      }
     });
   }
 

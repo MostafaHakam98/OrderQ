@@ -75,7 +75,7 @@ class _SplashScreenState extends State<SplashScreen>
           if (authProvider.isAuthenticated) {
             // Connect to notifications WebSocket if user is authenticated
             final notificationsProvider = Provider.of<NotificationsProvider>(context, listen: false);
-            notificationsProvider.connectWebSocket();
+            notificationsProvider.connectWebSocket(context);
             context.go('/');
           } else {
             context.go('/login');
@@ -90,7 +90,7 @@ class _SplashScreenState extends State<SplashScreen>
           final authProvider = Provider.of<AuthProvider>(context, listen: false);
           if (authProvider.isAuthenticated) {
             final notificationsProvider = Provider.of<NotificationsProvider>(context, listen: false);
-            notificationsProvider.connectWebSocket();
+            notificationsProvider.connectWebSocket(context);
           }
           context.go('/');
         }

@@ -50,6 +50,11 @@ class NotificationsWebSocketService {
         baseUrl = baseUrl.substring(0, baseUrl.length - 1);
       }
       
+      // Remove /api suffix if present (WebSocket routes are at root level, not under /api)
+      if (baseUrl.endsWith('/api')) {
+        baseUrl = baseUrl.substring(0, baseUrl.length - 4);
+      }
+      
       // Convert protocol
       String wsUrl;
       if (baseUrl.startsWith('https://')) {
@@ -71,17 +76,25 @@ class NotificationsWebSocketService {
       _subscription = _channel!.stream.listen(
         (message) {
           try {
+            print('📥 Raw WebSocket message received: $message');
             final data = jsonDecode(message);
+            print('📥 Parsed message type: ${data['type']}');
+            
             if (data['type'] == 'new_order' && data['order'] != null) {
-              print('📥 Received new order notification via WebSocket');
+              print('📥 Received new_order event via WebSocket');
+              print('📥 Order data: ${data['order']}');
               final order = CollectionOrder.fromJson(data['order']);
+              print('📥 Parsed order: ${order.code}, Collector: ${order.collector?.id}');
               _onNewOrder?.call(order);
             } else if (data['type'] == 'pong') {
               // Heartbeat response
               print('💓 Notifications WebSocket heartbeat received');
+            } else {
+              print('⚠️ Unknown message type: ${data['type']}');
             }
           } catch (e) {
             print('❌ Error parsing notifications WebSocket message: $e');
+            print('❌ Message was: $message');
           }
         },
         onError: (error) {

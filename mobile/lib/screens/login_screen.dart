@@ -117,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         
         // Connect to notifications WebSocket after successful login
         final notificationsProvider = Provider.of<NotificationsProvider>(context, listen: false);
-        notificationsProvider.connectWebSocket();
+        notificationsProvider.connectWebSocket(context);
         
         context.go('/splash-transition');
       } else if (mounted) {
