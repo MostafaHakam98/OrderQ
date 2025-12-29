@@ -88,12 +88,21 @@ class ApiService {
         }
         
         // Handle 401 errors (token refresh)
-        if (error.response?.statusCode == 401) {
+        // Don't try to refresh if the failed request IS the refresh endpoint itself
+        if (error.response?.statusCode == 401 && 
+            !error.requestOptions.path.contains('/auth/refresh/') &&
+            !error.requestOptions.path.contains('/auth/login/')) {
           // Try to refresh token
           final refreshToken = _prefs.getString('refresh_token');
           if (refreshToken != null && refreshToken.isNotEmpty) {
             try {
-              final response = await _dio.post(
+              // Create a new Dio instance without interceptors to avoid infinite loop
+              final refreshDio = Dio(BaseOptions(
+                baseUrl: baseUrl,
+                headers: {'Content-Type': 'application/json'},
+              ));
+              
+              final response = await refreshDio.post(
                 '/auth/refresh/',
                 data: {'refresh': refreshToken},
               );
@@ -114,11 +123,15 @@ class ApiService {
               );
               return handler.resolve(cloneReq);
             } catch (e) {
-              // Refresh failed, clear tokens
+              // Refresh failed, clear tokens and don't retry
+              print('🔄 Token refresh failed, clearing tokens and logging out');
               await _prefs.remove('access_token');
               await _prefs.remove('refresh_token');
               return handler.next(error);
             }
+          } else {
+            // No refresh token available, clear access token
+            await _prefs.remove('access_token');
           }
         }
         return handler.next(error);
