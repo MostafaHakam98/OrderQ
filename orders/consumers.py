@@ -8,6 +8,57 @@ from .serializers import CollectionOrderSerializer
 User = get_user_model()
 
 
+class NotificationsConsumer(AsyncWebsocketConsumer):
+    """
+    General notifications consumer for broadcasting new orders and other events
+    to all authenticated users
+    """
+    async def connect(self):
+        # Verify user is authenticated
+        if not self.scope['user'].is_authenticated:
+            await self.close()
+            return
+        
+        # Join the general notifications group
+        self.group_name = 'notifications'
+        await self.channel_layer.group_add(
+            self.group_name,
+            self.channel_name
+        )
+        
+        await self.accept()
+    
+    async def disconnect(self, close_code):
+        # Leave notifications group
+        await self.channel_layer.group_discard(
+            self.group_name,
+            self.channel_name
+        )
+    
+    # Receive message from WebSocket
+    async def receive(self, text_data):
+        text_data_json = json.loads(text_data)
+        message_type = text_data_json.get('type')
+        
+        if message_type == 'ping':
+            await self.send(text_data=json.dumps({'type': 'pong'}))
+    
+    # Receive message from room group
+    async def new_order(self, event):
+        """Handle new_order event from channel layer"""
+        await self.send(text_data=json.dumps({
+            'type': 'new_order',
+            'order': event['order']
+        }))
+    
+    async def order_update(self, event):
+        """Handle order_update event (for general notifications)"""
+        await self.send(text_data=json.dumps({
+            'type': 'order_update',
+            'order': event['order']
+        }))
+
+
 class OrderConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.order_id = self.scope['url_route']['kwargs']['order_id']
@@ -69,12 +120,12 @@ class OrderConsumer(AsyncWebsocketConsumer):
         try:
             order = CollectionOrder.objects.get(id=order_id)
             # Allow if:
-            # - User is manager
+            # - User is manager or admin
             # - User is collector
             # - Order is not private
             # - User is assigned to the order
             # - User has items in the order
-            if user.role == 'manager':
+            if user.role in ['manager', 'admin']:
                 return True
             if order.collector == user:
                 return True

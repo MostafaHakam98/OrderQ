@@ -3,5 +3,6 @@ from . import consumers
 
 websocket_urlpatterns = [
     re_path(r'ws/orders/(?P<order_id>\d+)/$', consumers.OrderConsumer.as_asgi()),
+    re_path(r'ws/notifications/$', consumers.NotificationsConsumer.as_asgi()),
 ]
 

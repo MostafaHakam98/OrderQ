@@ -7,6 +7,7 @@ import 'dart:io';
 import '../providers/auth_provider.dart';
 import '../providers/orders_provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/notifications_provider.dart';
 import 'restaurant_wheel_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -434,6 +435,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 leading: const Icon(Icons.logout, color: Colors.red),
                 title: const Text('Logout', style: TextStyle(color: Colors.red)),
                 onTap: () async {
+                  // Disconnect notifications WebSocket before logout
+                  final notificationsProvider = Provider.of<NotificationsProvider>(context, listen: false);
+                  notificationsProvider.disconnectWebSocket();
+                  
                   await authProvider.logout();
                   if (context.mounted) {
                     context.go('/login');

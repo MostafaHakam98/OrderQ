@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
 import '../providers/auth_provider.dart';
+import '../providers/notifications_provider.dart';
 
 class SplashScreen extends StatefulWidget {
   final String? nextRoute;
@@ -72,6 +73,9 @@ class _SplashScreenState extends State<SplashScreen>
         if (mounted) {
           final authProvider = Provider.of<AuthProvider>(context, listen: false);
           if (authProvider.isAuthenticated) {
+            // Connect to notifications WebSocket if user is authenticated
+            final notificationsProvider = Provider.of<NotificationsProvider>(context, listen: false);
+            notificationsProvider.connectWebSocket();
             context.go('/');
           } else {
             context.go('/login');
@@ -82,6 +86,12 @@ class _SplashScreenState extends State<SplashScreen>
       // Transition splash - navigate to home
       Timer(widget.duration, () {
         if (mounted) {
+          // Connect to notifications WebSocket after login transition
+          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+          if (authProvider.isAuthenticated) {
+            final notificationsProvider = Provider.of<NotificationsProvider>(context, listen: false);
+            notificationsProvider.connectWebSocket();
+          }
           context.go('/');
         }
       });

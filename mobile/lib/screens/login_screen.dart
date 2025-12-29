@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math' as math;
 import '../providers/auth_provider.dart';
+import '../providers/notifications_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -113,6 +114,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           await prefs.remove('saved_username');
           await prefs.remove('remember_me');
         }
+        
+        // Connect to notifications WebSocket after successful login
+        final notificationsProvider = Provider.of<NotificationsProvider>(context, listen: false);
+        notificationsProvider.connectWebSocket();
         
         context.go('/splash-transition');
       } else if (mounted) {

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/notification.dart';
+import '../models/order.dart';
 import '../services/notification_service.dart';
+import '../services/notifications_websocket_service.dart';
 
 class NotificationsProvider extends ChangeNotifier {
   final NotificationService _notificationService = NotificationService();
   final List<AppNotification> _notifications = [];
   bool _isLoading = false;
+  NotificationsWebSocketService? _wsService;
 
   List<AppNotification> get notifications => List.unmodifiable(_notifications);
   List<AppNotification> get unreadNotifications =>
@@ -17,6 +20,40 @@ class NotificationsProvider extends ChangeNotifier {
 
   NotificationsProvider() {
     _loadNotifications();
+    _initializeWebSocket();
+  }
+
+  Future<void> _initializeWebSocket() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token');
+      
+      // Only connect if user is authenticated
+      if (token != null && token.isNotEmpty) {
+        _wsService = NotificationsWebSocketService(prefs);
+        _wsService!.connect((order) async {
+          // Handle new order notification
+          // Check if we should notify (don't notify if order is private and user doesn't have access)
+          // For now, we'll notify for all new orders - the backend will handle access control
+          await notifyOrderCreated(
+            orderCode: order.code,
+            restaurantName: order.restaurant.name,
+            orderId: order.id.toString(),
+          );
+        });
+      }
+    } catch (e) {
+      print('Error initializing notifications WebSocket: $e');
+    }
+  }
+
+  void connectWebSocket() {
+    _initializeWebSocket();
+  }
+
+  void disconnectWebSocket() {
+    _wsService?.disconnect();
+    _wsService = null;
   }
 
   Future<void> loadNotifications() async {

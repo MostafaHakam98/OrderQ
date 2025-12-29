@@ -18,7 +18,7 @@ from .serializers import (
     RecommendationSerializer
 )
 from .utils import format_item_name
-from .websocket_utils import broadcast_order_update
+from .websocket_utils import broadcast_order_update, broadcast_new_order
 from rest_framework_simplejwt.tokens import RefreshToken
 
 
@@ -153,9 +153,9 @@ class RestaurantViewSet(viewsets.ModelViewSet):
         Add a restaurant from Talabat URL.
         Accepts: { "talabat_url": "...", "sync_now": true/false }
         """
-        if request.user.role != 'manager':
+        if request.user.role not in ['manager', 'admin']:
             return Response(
-                {'error': 'Only managers can add restaurants from Talabat'}, 
+                {'error': 'Only managers or administrators can add restaurants from Talabat'}, 
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -280,9 +280,9 @@ class RestaurantViewSet(viewsets.ModelViewSet):
         """
         Sync menu for a restaurant from Talabat.
         """
-        if request.user.role != 'manager':
+        if request.user.role not in ['manager', 'admin']:
             return Response(
-                {'error': 'Only managers can sync menus'}, 
+                {'error': 'Only managers or administrators can sync menus'}, 
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -384,9 +384,9 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
         if status_filter:
             queryset = queryset.filter(status=status_filter)
         
-        # Show public orders to everyone, private orders only to participants/managers
+        # Show public orders to everyone, private orders only to participants/managers/admins
         # Also show orders where user is assigned
-        if user.role != 'manager':
+        if user.role not in ['manager', 'admin']:
             queryset = queryset.filter(
                 Q(is_private=False) |  # Public orders
                 Q(collector=user) |    # Orders I collected
@@ -420,6 +420,9 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
             action='created',
             details={'restaurant': order.restaurant.name, 'assigned_users': [u.username for u in assigned_users] if assigned_users else None}
         )
+        
+        # Broadcast new order event to all connected clients
+        broadcast_new_order(order)
     
     def update(self, request, *args, **kwargs):
         """Allow updating fees and assigned_users for open orders"""
@@ -513,15 +516,15 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
     
     def destroy(self, request, *args, **kwargs):
         order = self.get_object()
-        # Only collector or manager can delete
-        if order.collector != request.user and request.user.role != 'manager':
+        # Only collector, manager, or admin can delete
+        if order.collector != request.user and request.user.role not in ['manager', 'admin']:
             return Response(
-                {'error': 'Only collector or manager can delete order'}, 
+                {'error': 'Only collector, manager, or administrator can delete order'}, 
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Collectors can only delete OPEN orders, managers can delete any order
-        if order.status != 'OPEN' and request.user.role != 'manager':
+        # Collectors can only delete OPEN orders, managers/admins can delete any order
+        if order.status != 'OPEN' and request.user.role not in ['manager', 'admin']:
             return Response(
                 {'error': 'Can only delete open orders'}, 
                 status=status.HTTP_400_BAD_REQUEST
@@ -545,9 +548,9 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        if order.collector != request.user and request.user.role != 'manager':
+        if order.collector != request.user and request.user.role not in ['manager', 'admin']:
             return Response(
-                {'error': 'Only collector or manager can lock order'}, 
+                {'error': 'Only collector, manager, or administrator can lock order'}, 
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -586,10 +589,10 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Collector or manager can unlock
-        if order.collector != request.user and request.user.role != 'manager':
+        # Collector, manager, or admin can unlock
+        if order.collector != request.user and request.user.role not in ['manager', 'admin']:
             return Response(
-                {'error': 'Only collector or manager can unlock order'}, 
+                {'error': 'Only collector, manager, or administrator can unlock order'}, 
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -652,9 +655,9 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        if order.collector != request.user and request.user.role != 'manager':
+        if order.collector != request.user and request.user.role not in ['manager', 'admin']:
             return Response(
-                {'error': 'Only collector or manager can close order'}, 
+                {'error': 'Only collector, manager, or administrator can close order'}, 
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -688,7 +691,7 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
             
             # Check if order has assigned users - if so, only they can access it
             if order.assigned_users.exists():
-                if request.user not in order.assigned_users.all() and request.user.role != 'manager' and order.collector != request.user:
+                if request.user not in order.assigned_users.all() and request.user.role not in ['manager', 'admin'] and order.collector != request.user:
                     return Response(
                         {'error': 'You are not assigned to this order'}, 
                         status=status.HTTP_403_FORBIDDEN
@@ -714,10 +717,10 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Only current collector or manager can transfer
-        if order.collector != request.user and request.user.role != 'manager':
+        # Only current collector, manager, or admin can transfer
+        if order.collector != request.user and request.user.role not in ['manager', 'admin']:
             return Response(
-                {'error': 'Only collector or manager can transfer collector role'}, 
+                {'error': 'Only collector, manager, or administrator can transfer collector role'}, 
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -811,7 +814,7 @@ class CollectionOrderViewSet(viewsets.ModelViewSet):
     def monthly_report(self, request):
         """Monthly report: comprehensive dashboard with multiple metrics"""
         user_id = request.query_params.get('user_id', request.user.id)
-        if request.user.role != 'manager' and str(request.user.id) != str(user_id):
+        if request.user.role not in ['manager', 'admin'] and str(request.user.id) != str(user_id):
             return Response(
                 {'error': 'Permission denied'}, 
                 status=status.HTTP_403_FORBIDDEN
@@ -1014,8 +1017,8 @@ class OrderItemViewSet(viewsets.ModelViewSet):
         if user_id:
             queryset = queryset.filter(user_id=user_id)
         
-        # Users can only see their own items unless they're the collector or manager
-        if self.request.user.role != 'manager':
+        # Users can only see their own items unless they're the collector, manager, or admin
+        if self.request.user.role not in ['manager', 'admin']:
             order_ids = CollectionOrder.objects.filter(
                 Q(collector=self.request.user) | Q(items__user=self.request.user)
             ).values_list('id', flat=True)
@@ -1036,7 +1039,7 @@ class OrderItemViewSet(viewsets.ModelViewSet):
         
         # Check if order has assigned users - if so, only they can add items
         if order.assigned_users.exists():
-            if request.user not in order.assigned_users.all() and request.user.role != 'manager' and order.collector != request.user:
+            if request.user not in order.assigned_users.all() and request.user.role not in ['manager', 'admin'] and order.collector != request.user:
                 raise ValidationError("You are not assigned to this order")
         
         # Set unit price
@@ -1046,10 +1049,10 @@ class OrderItemViewSet(viewsets.ModelViewSet):
             serializer.validated_data['unit_price'] = serializer.validated_data['custom_price']
         
         # Determine which user to assign the item to
-        # If user is provided, only allow if requester is collector or manager
+        # If user is provided, only allow if requester is collector, manager, or admin
         assigned_user = serializer.validated_data.get('user')
         if assigned_user:
-            if order.collector != request.user and request.user.role != 'manager':
+            if order.collector != request.user and request.user.role not in ['manager', 'admin']:
                 raise ValidationError("Only the collector or manager can assign items to other users")
             user_to_assign = assigned_user
         else:
@@ -1182,7 +1185,7 @@ class OrderItemViewSet(viewsets.ModelViewSet):
         if order.status != 'OPEN':
             raise ValidationError("Cannot remove items from a locked/closed order")
         
-        if instance.user != self.request.user and order.collector != self.request.user and self.request.user.role != 'manager':
+        if instance.user != self.request.user and order.collector != self.request.user and self.request.user.role not in ['manager', 'admin']:
             raise ValidationError("Permission denied")
         
         AuditLog.objects.create(
@@ -1345,7 +1348,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(user_id=user_id)
         
         # Users can only see their own payments or payments for orders they collected
-        if self.request.user.role != 'manager':
+        if self.request.user.role not in ['manager', 'admin']:
             order_ids = CollectionOrder.objects.filter(
                 Q(collector=self.request.user) | Q(payments__user=self.request.user)
             ).values_list('id', flat=True)
@@ -1357,8 +1360,8 @@ class PaymentViewSet(viewsets.ModelViewSet):
     def mark_paid(self, request, pk=None):
         payment = self.get_object()
         
-        # Allow user to mark their own payment as paid, or collector/manager to mark any payment
-        if payment.user != request.user and payment.order.collector != request.user and request.user.role != 'manager':
+        # Allow user to mark their own payment as paid, or collector/manager/admin to mark any payment
+        if payment.user != request.user and payment.order.collector != request.user and request.user.role not in ['manager', 'admin']:
             return Response(
                 {'error': 'Only the payer, collector, or manager can mark as paid'}, 
                 status=status.HTTP_403_FORBIDDEN
