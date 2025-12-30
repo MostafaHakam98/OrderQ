@@ -161,7 +161,7 @@ REST_FRAMEWORK = {
 
 # CSRF settings - Exempt API endpoints from CSRF
 # Read from environment variable as comma-separated list, fallback to defaults
-csrf_origins_env = os.environ.get('CSRF_TRUSTED_ORIGINS', 'http://localhost:19991,http://127.0.0.1:19991,http://10.100.70.13:19991')
+csrf_origins_env = os.environ.get('CSRF_TRUSTED_ORIGINS', 'http://localhost:19991,http://localhost:19992,http://127.0.0.1:19991,http://127.0.0.1:19992,http://10.100.70.13:19991,http://51.20.151.57:19991,http://51.20.151.57:19992')
 CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_origins_env.split(',') if origin.strip()]
 
 # Exempt API endpoints from CSRF
@@ -183,9 +183,13 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:19991",
+    "http://localhost:19992",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:19991",
+    "http://127.0.0.1:19992",
     "http://10.100.70.13:19991",
+    "http://51.20.151.57:19991",
+    "http://51.20.151.57:19992",
 ]
 
 # CORS settings - Allow all origins
