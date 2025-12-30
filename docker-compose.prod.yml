@@ -1,0 +1,83 @@
+# Production docker-compose file using pre-built images
+# Usage: docker-compose -f docker-compose.prod.yml up -d
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: orderq
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: brighteat-backend:latest
+    command: /app/start.sh
+    volumes:
+      - .:/app
+    ports:
+      - "19992:8000"
+    environment:
+      - DEBUG=True
+      - DB_NAME=orderq
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+      - SECRET_KEY=django-insecure-g@l$t7h!hv)__!=&u5_b%)9hkbmmh7qc=d-!_$bda5*bixmkky
+      - FRONTEND_URL=http://localhost:19991
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    image: brighteat-frontend:latest
+    depends_on:
+      - backend
+
+  flutter-pwa:
+    image: brighteat-flutter-pwa:latest
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  nginx-router:
+    image: nginx:alpine
+    ports:
+      - "19991:80"
+    volumes:
+      - ./nginx-router.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - flutter-pwa
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
