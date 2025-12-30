@@ -56,10 +56,34 @@ services:
       dockerfile: Dockerfile
       args:
         - VITE_API_BASE_URL=/api
-    ports:
-      - "19991:80"
+    # No exposed ports - accessed through nginx-router
     depends_on:
       - backend
+
+  flutter-pwa:
+    build:
+      context: ./mobile
+      dockerfile: Dockerfile.pwa
+    # No exposed ports - accessed through nginx-router
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  nginx-router:
+    image: nginx:alpine
+    ports:
+      - "19991:80"
+    volumes:
+      - ./nginx-router.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - flutter-pwa
+      - backend
+    restart: unless-stopped
 
 volumes:
   postgres_data:
