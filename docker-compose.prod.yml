@@ -20,6 +20,10 @@ x-backend-env: &backend-env
   CELERY_RESULT_BACKEND: redis://redis:6379/0
   FLARESOLVERR_URL: http://flaresolverr:8191
   HIVE_URL: ${HIVE_URL:-}
+  # Hive password logins (orders/backends.py) go to Hive's public URL. OrderQ is
+  # not on Hive's Docker network, so the settings default
+  # (http://orchestrator-backend:8000) does not resolve here.
+  HIVE_API_URL: ${HIVE_API_URL:-${HIVE_URL:-}}
   SSO_ALLOWED_EMAIL_DOMAINS: ${SSO_ALLOWED_EMAIL_DOMAINS:-brightskiesinc.com}
   WEBPUSH_VAPID_PUBLIC_KEY: ${WEBPUSH_VAPID_PUBLIC_KEY:-}
   WEBPUSH_VAPID_PRIVATE_KEY: ${WEBPUSH_VAPID_PRIVATE_KEY:-}
@@ -76,9 +80,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    networks:
-      - default
-      - hive-network
     depends_on:
       db:
         condition: service_healthy
@@ -93,9 +94,6 @@ services:
     restart: unless-stopped
     environment:
       <<: *backend-env
-    networks:
-      - default
-      - hive-network
     depends_on:
       db:
         condition: service_healthy
@@ -108,9 +106,6 @@ services:
     restart: unless-stopped
     environment:
       <<: *backend-env
-    networks:
-      - default
-      - hive-network
     depends_on:
       db:
         condition: service_healthy
@@ -160,8 +155,8 @@ volumes:
   redis_data:
   media_data:
 
-networks:
-  default: {}
-  hive-network:
-    external: true
-    name: bsacaiportal_acai-network
+# Only the stack's own default network. OrderQ used to join Hive's
+# bsacaiportal_acai-network too, where Hive's Redis carries the alias "redis":
+# REDIS_HOST and the Celery broker resolved to Hive's Redis instead of this
+# stack's, and the queue filled it (2026-10-14). Traefik reaches OrderQ through
+# the published port, so nothing here needs Hive's network.
